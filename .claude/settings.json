@@ -1,0 +1,14 @@
+{
+  "extraKnownMarketplaces": {
+    "superpowers-dev": {
+      "source": { "source": "github", "repo": "obra/superpowers" }
+    },
+    "thedotmack": {
+      "source": { "source": "github", "repo": "thedotmack/claude-mem" }
+    }
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-dev": true,
+    "claude-mem@thedotmack": true
+  }
+}
