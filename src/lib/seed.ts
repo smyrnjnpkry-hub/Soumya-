@@ -53,10 +53,12 @@ export function createSampleData(today: string): FinanceData {
     if (rand() > 0.5) add(someDay(), 'income', between(120, 600), 'refunds', 'upi', pick(['UPI cashback', 'Amazon refund', 'Swiggy refund']));
 
     // Fixed outgoings
-    add(on(2), 'transfer', 10000, '', 'bank', 'Top up UPI wallet', 'upi');
+    add(on(2), 'transfer', 15000, '', 'bank', 'Move money to UPI', 'upi');
+    add(on(16), 'transfer', 6000, '', 'bank', 'Move money to UPI', 'upi');
     add(on(3), 'expense', 18000, 'rent', 'bank', 'House rent');
     add(on(5), 'expense', 12450, 'emi', 'bank', 'Car loan EMI');
     add(on(7), 'transfer', 3000, '', 'bank', 'ATM withdrawal', 'cash');
+    add(on(20), 'transfer', 2000, '', 'bank', 'ATM withdrawal', 'cash');
     add(on(8), 'expense', between(1300, 2600), 'bills', 'bank', 'Electricity bill');
     add(on(12), 'expense', 5020, 'emi', 'bank', 'Personal loan EMI');
     add(on(12), 'expense', 799, 'bills', 'upi', 'Broadband');
