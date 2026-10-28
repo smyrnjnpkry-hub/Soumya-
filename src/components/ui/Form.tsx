@@ -2,7 +2,19 @@ import { ChevronDown } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '@/lib/ui';
 
-export function Field({ label, hint, error, htmlFor, children }: { label: string; hint?: ReactNode; error?: string; htmlFor?: string; children: ReactNode }) {
+export function Field({
+  label,
+  hint,
+  error,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  hint?: ReactNode;
+  error?: string;
+  htmlFor?: string;
+  children: ReactNode;
+}) {
   return (
     <div>
       <label className="label" htmlFor={htmlFor}>

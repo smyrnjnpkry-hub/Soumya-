@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { formatINR } from '@/lib/format';
+import { niceScale } from '@/lib/scale';
 import { prefersReducedMotion } from '@/lib/ui';
 
 /** Shared chart chrome: recessive axes, solid hairline grid, compact ₹ ticks. */
@@ -12,6 +13,12 @@ export const AXIS = {
 export const GRID = { vertical: false, stroke: 'var(--grid)' } as const;
 
 export const compactINR = (v: number) => formatINR(v, { compact: true });
+
+/** Y-axis props with round ticks (₹0 / 25K / 50K …) for the plotted values. */
+export function yAxisFor(values: number[]) {
+  const { ticks, domain } = niceScale(Math.min(0, ...values), Math.max(0, ...values));
+  return { ...AXIS, width: 52, tickFormatter: compactINR, ticks, domain, interval: 0 as const };
+}
 
 export const animate = () => !prefersReducedMotion();
 

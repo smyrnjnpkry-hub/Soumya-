@@ -222,10 +222,7 @@ describe('buildInsights — alerts', () => {
       tx(`${m}-18`, 'expense', 120, 'shopping'),
       tx(`${m}-10`, 'expense', 2050, 'shopping', 'Petrol'),
     ]);
-    const report = buildInsights(
-      data({ transactions: [...rides, tx('2026-10-10', 'expense', 2100, 'shopping', 'Petrol')] }),
-      TODAY,
-    );
+    const report = buildInsights(data({ transactions: [...rides, tx('2026-10-10', 'expense', 2100, 'shopping', 'Petrol')] }), TODAY);
     expect(byId(report.insights, 'large-expense')).toBeUndefined();
   });
 

@@ -47,9 +47,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
             </IconButton>
           </div>
           <div className="overflow-y-auto px-5 pt-2 pb-5">{children}</div>
-          {footer && (
-            <div className="flex gap-2 border-t border-line px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{footer}</div>
-          )}
+          {footer && <div className="flex gap-2 border-t border-line px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{footer}</div>}
         </div>
       )}
     </dialog>

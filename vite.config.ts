@@ -20,8 +20,7 @@ export default defineConfig({
       manifest: {
         name: 'FinTrack — Personal Finance',
         short_name: 'FinTrack',
-        description:
-          'Private, offline-first personal finance tracker: budgets, goals, loans, cash flow and smart insights in ₹.',
+        description: 'Private, offline-first personal finance tracker: budgets, goals, loans, cash flow and smart insights in ₹.',
         lang: 'en-IN',
         theme_color: '#f5f7fb',
         background_color: '#f5f7fb',

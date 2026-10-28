@@ -4,6 +4,8 @@ import { AppShell, Splash } from '@/components/layout/AppShell';
 import Dashboard from '@/pages/Dashboard';
 import { useHydrated } from '@/store/finance';
 import '@/store/theme';
+// Listen for the install prompt from the start; it fires once, early in page load.
+import '@/store/install';
 
 /** Route-level code splitting: each screen downloads (and is precached) separately. */
 const page = (load: () => Promise<{ default: ComponentType }>) => async () => ({ Component: (await load()).default });

@@ -1,4 +1,4 @@
-import { daysInMonth, monthBounds, monthKey } from './dates';
+import { addDays, daysInMonth, monthBounds, monthKey, parseLocal } from './dates';
 import { round2 } from './format';
 import type { Account, Budget, CategoryType, Transaction } from './types';
 
@@ -149,9 +149,7 @@ export const BUDGET_WARNING_RATIO = 0.8;
 
 export function budgetProgress(budgets: Budget[], transactions: Transaction[], key: string) {
   const { start, end } = monthBounds(key);
-  const spentByCategory = new Map(
-    categoryBreakdown(transactions, { type: 'expense', start, end }).map((i) => [i.categoryId, i.amount]),
-  );
+  const spentByCategory = new Map(categoryBreakdown(transactions, { type: 'expense', start, end }).map((i) => [i.categoryId, i.amount]));
   const items: BudgetProgress[] = budgets
     .filter((b) => b.month === key)
     .map((budget) => {
@@ -178,4 +176,22 @@ export function dailyCumulative(transactions: Transaction[], key: string, type: 
     running += amount;
     return { day: i + 1, total: round2(running) };
   });
+}
+
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/** Average spending per weekday (Mon–Sun), dividing by how many of each weekday the range contains. */
+export function weekdayAverages(transactions: Transaction[], start: string, end: string) {
+  const mondayFirst = (iso: string) => (parseLocal(iso).getDay() + 6) % 7;
+  const totals = new Array<number>(7).fill(0);
+  const occurrences = new Array<number>(7).fill(0);
+  for (let day = start; day <= end; day = addDays(day, 1)) occurrences[mondayFirst(day)]++;
+  for (const t of transactions) {
+    if (t.type === 'expense' && inRange(t, start, end)) totals[mondayFirst(t.date)] += t.amount;
+  }
+  return WEEKDAYS.map((label, i) => ({
+    label,
+    total: round2(totals[i]),
+    average: occurrences[i] ? round2(totals[i] / occurrences[i]) : 0,
+  }));
 }

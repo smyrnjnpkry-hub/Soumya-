@@ -29,9 +29,7 @@ export function TransactionRow({ t, lookup, showDate }: { t: Transaction; lookup
       <CategoryIcon category={lookup.categories[t.category]} transfer={t.type === 'transfer'} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px] font-medium text-ink">{title}</div>
-        <div className="truncate text-[13px] text-muted">
-          {showDate ? `${formatDate(t.date, 'short')} · ${subtitle}` : subtitle}
-        </div>
+        <div className="truncate text-[13px] text-muted">{showDate ? `${formatDate(t.date, 'short')} · ${subtitle}` : subtitle}</div>
       </div>
       <Amount value={t.amount} type={t.type} className="text-[15px]" />
     </Link>

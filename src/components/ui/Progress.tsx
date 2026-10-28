@@ -4,7 +4,17 @@ import { cn, tint } from '@/lib/ui';
 const clamp01 = (n: number) => Math.min(Math.max(n, 0), 1);
 
 /** Meter: the fill carries the state; the track is a light tint of the same colour. */
-export function ProgressBar({ value, color = 'var(--primary)', label, className }: { value: number; color?: string; label: string; className?: string }) {
+export function ProgressBar({
+  value,
+  color = 'var(--primary)',
+  label,
+  className,
+}: {
+  value: number;
+  color?: string;
+  label: string;
+  className?: string;
+}) {
   return (
     <div
       role="progressbar"
@@ -15,7 +25,10 @@ export function ProgressBar({ value, color = 'var(--primary)', label, className 
       className={cn('h-2 w-full overflow-hidden rounded-full', className)}
       style={{ backgroundColor: tint(color, 16) }}
     >
-      <div className="h-full rounded-full transition-[width] duration-700 ease-out" style={{ width: `${clamp01(value) * 100}%`, backgroundColor: color }} />
+      <div
+        className="h-full rounded-full transition-[width] duration-700 ease-out"
+        style={{ width: `${clamp01(value) * 100}%`, backgroundColor: color }}
+      />
     </div>
   );
 }

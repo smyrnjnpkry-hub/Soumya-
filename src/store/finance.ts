@@ -89,8 +89,7 @@ export const useFinance = create<FinanceState>()(
         set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) }));
         return removed;
       },
-      restoreTransaction: (t) =>
-        set((s) => (s.transactions.some((x) => x.id === t.id) ? s : { transactions: [t, ...s.transactions] })),
+      restoreTransaction: (t) => set((s) => (s.transactions.some((x) => x.id === t.id) ? s : { transactions: [t, ...s.transactions] })),
 
       addAccount: (a) => {
         const id = createId();
@@ -120,9 +119,7 @@ export const useFinance = create<FinanceState>()(
           return {
             categories: s.categories.filter((c) => c.id !== id),
             budgets: s.budgets.filter((b) => b.category !== id),
-            transactions: fallback
-              ? s.transactions.map((t) => (t.category === id ? { ...t, category: fallback.id } : t))
-              : s.transactions,
+            transactions: fallback ? s.transactions.map((t) => (t.category === id ? { ...t, category: fallback.id } : t)) : s.transactions,
           };
         }),
 

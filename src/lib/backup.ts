@@ -59,13 +59,7 @@ const parsers: { [K in keyof FinanceData]: (r: Raw) => FinanceData[K][number] | 
       ? { id: r.id, name: r.name, target: r.target, current: r.current, deadline: r.deadline }
       : null,
   loans: (r): Loan | null =>
-    str(r.id) &&
-    str(r.name) &&
-    num(r.principal) &&
-    num(r.emi) &&
-    num(r.interestRate) &&
-    num(r.remainingTenure) &&
-    date(r.nextDue)
+    str(r.id) && str(r.name) && num(r.principal) && num(r.emi) && num(r.interestRate) && num(r.remainingTenure) && date(r.nextDue)
       ? {
           id: r.id,
           name: r.name,

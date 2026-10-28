@@ -213,11 +213,7 @@ export function buildInsights(data: FinanceData, today: string): InsightsReport 
 
   const recent = completed.slice(-3);
   const recentWithExpense = recent.filter((m) => m.expense > 0);
-  const avgMonthlyExpense = recentWithExpense.length
-    ? mean(recentWithExpense.map((m) => m.expense))
-    : projected > 0
-      ? projected
-      : null;
+  const avgMonthlyExpense = recentWithExpense.length ? mean(recentWithExpense.map((m) => m.expense)) : projected > 0 ? projected : null;
   const balance = totalBalance(accounts, transactions);
   const runwayMonths = avgMonthlyExpense ? Math.max(balance, 0) / avgMonthlyExpense : null;
 
@@ -311,9 +307,7 @@ export function buildInsights(data: FinanceData, today: string): InsightsReport 
       categoryId: t.categoryId,
     });
   }
-  const ups = movers.filter(
-    (t) => !isSpike(t) && t.changePct! >= RULES.categoryChange && t.current - t.previous >= RULES.categoryMinDiff,
-  );
+  const ups = movers.filter((t) => !isSpike(t) && t.changePct! >= RULES.categoryChange && t.current - t.previous >= RULES.categoryMinDiff);
   for (const t of ups.sort(byIncrease).slice(0, RULES.maxPerRule)) {
     add({
       id: `category-up:${t.categoryId}`,

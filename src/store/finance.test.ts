@@ -101,7 +101,11 @@ describe('goals and transactions', () => {
     const removed = state().deleteTransaction('t2');
     expect(state().transactions.map((t) => t.id)).toEqual(['t1', 't3']);
     state().restoreTransaction(removed!);
-    expect(state().transactions.map((t) => t.id).sort()).toEqual(['t1', 't2', 't3']);
+    expect(
+      state()
+        .transactions.map((t) => t.id)
+        .sort(),
+    ).toEqual(['t1', 't2', 't3']);
   });
 
   it('starts fresh with default categories and accounts and no sample flag', () => {

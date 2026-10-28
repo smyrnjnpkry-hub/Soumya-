@@ -203,7 +203,10 @@ export default function TransactionForm() {
               aria-describedby={errors.amount ? 'amount-error' : undefined}
               // Grow with the digits (tabular figures are exactly 1ch wide) so ₹ stays beside the number
               style={{ width: `${Math.max(amount.length, 1) + 0.25}ch` }}
-              className={cn('max-w-full bg-transparent text-5xl font-bold tracking-tight tabular-nums outline-none placeholder:text-line', typeColor)}
+              className={cn(
+                'max-w-full bg-transparent text-5xl font-bold tracking-tight tabular-nums outline-none placeholder:text-line',
+                typeColor,
+              )}
             />
           </div>
           {errors.amount && (

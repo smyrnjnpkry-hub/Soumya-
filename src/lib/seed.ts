@@ -23,7 +23,7 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
 export function createSampleData(today: string): FinanceData {
   const rand = mulberry32(20261028);
   const between = (min: number, max: number) => Math.round((min + rand() * (max - min)) / 10) * 10;
-  const pick = <T,>(items: readonly T[]) => items[Math.floor(rand() * items.length)];
+  const pick = <T>(items: readonly T[]) => items[Math.floor(rand() * items.length)];
 
   const accounts: Account[] = [
     { id: 'bank', name: 'HDFC Savings', type: 'bank', balance: 135000 },
@@ -33,7 +33,15 @@ export function createSampleData(today: string): FinanceData {
 
   const transactions: Transaction[] = [];
   let seq = 0;
-  const add = (date: string, type: Transaction['type'], amount: number, category: string, account: string, note: string, toAccount?: string) => {
+  const add = (
+    date: string,
+    type: Transaction['type'],
+    amount: number,
+    category: string,
+    account: string,
+    note: string,
+    toAccount?: string,
+  ) => {
     if (date > today) return;
     transactions.push({ id: `sample-${++seq}`, type, amount, date, category, account, note, ...(toAccount ? { toAccount } : {}) });
   };
@@ -48,9 +56,18 @@ export function createSampleData(today: string): FinanceData {
 
     // Income
     add(on(1), 'income', 92000, 'salary', 'bank', 'Monthly salary');
-    if (index % 2 === 1) add(on(14 + (index % 5)), 'income', between(9000, 16000), 'freelance', 'bank', pick(['Logo design project', 'Website for a client', 'UI audit gig']));
+    if (index % 2 === 1)
+      add(
+        on(14 + (index % 5)),
+        'income',
+        between(9000, 16000),
+        'freelance',
+        'bank',
+        pick(['Logo design project', 'Website for a client', 'UI audit gig']),
+      );
     if (index % 3 === 2) add(on(28), 'income', between(900, 1400), 'interest', 'bank', 'Savings interest');
-    if (rand() > 0.5) add(someDay(), 'income', between(120, 600), 'refunds', 'upi', pick(['UPI cashback', 'Amazon refund', 'Swiggy refund']));
+    if (rand() > 0.5)
+      add(someDay(), 'income', between(120, 600), 'refunds', 'upi', pick(['UPI cashback', 'Amazon refund', 'Swiggy refund']));
 
     // Fixed outgoings
     add(on(2), 'transfer', 15000, '', 'bank', 'Move money to UPI', 'upi');
@@ -68,21 +85,49 @@ export function createSampleData(today: string): FinanceData {
     // Day-to-day spending (a busier food month and one big purchase this month)
     const groceryRuns = 4 + Math.floor(rand() * 2);
     for (let i = 0; i < groceryRuns; i++) {
-      add(on(2 + i * 7 + Math.floor(rand() * 3)), 'expense', between(900, 2700), 'groceries', rand() > 0.3 ? 'upi' : 'cash', pick(['BigBasket order', 'D-Mart', 'Vegetables & fruits', 'Blinkit']));
+      add(
+        on(2 + i * 7 + Math.floor(rand() * 3)),
+        'expense',
+        between(900, 2700),
+        'groceries',
+        rand() > 0.3 ? 'upi' : 'cash',
+        pick(['BigBasket order', 'D-Mart', 'Vegetables & fruits', 'Blinkit']),
+      );
     }
     const meals = (isCurrent ? 15 : 10) + Math.floor(rand() * 4);
     for (let i = 0; i < meals; i++) {
-      add(someDay(), 'expense', between(140, isCurrent ? 1150 : 950), 'food', rand() > 0.2 ? 'upi' : 'cash', pick(['Swiggy', 'Zomato', 'Chai & snacks', 'Lunch with team', 'Dinner out', 'Café']));
+      add(
+        someDay(),
+        'expense',
+        between(140, isCurrent ? 1150 : 950),
+        'food',
+        rand() > 0.2 ? 'upi' : 'cash',
+        pick(['Swiggy', 'Zomato', 'Chai & snacks', 'Lunch with team', 'Dinner out', 'Café']),
+      );
     }
     const rides = 6 + Math.floor(rand() * 5);
     for (let i = 0; i < rides; i++) {
-      add(someDay(), 'expense', between(80, 520), 'transport', rand() > 0.25 ? 'upi' : 'cash', pick(['Uber', 'Auto', 'Metro card recharge', 'Rapido']));
+      add(
+        someDay(),
+        'expense',
+        between(80, 520),
+        'transport',
+        rand() > 0.25 ? 'upi' : 'cash',
+        pick(['Uber', 'Auto', 'Metro card recharge', 'Rapido']),
+      );
     }
     add(on(10), 'expense', between(1600, 2400), 'transport', 'bank', 'Petrol');
     add(on(24), 'expense', between(1400, 2200), 'transport', 'bank', 'Petrol');
     const shopping = isCurrent ? 1 : 2 + Math.floor(rand() * 2);
     for (let i = 0; i < shopping; i++) {
-      add(someDay(), 'expense', between(700, 3800), 'shopping', rand() > 0.5 ? 'bank' : 'upi', pick(['Amazon', 'Myntra', 'Decathlon', 'Home essentials']));
+      add(
+        someDay(),
+        'expense',
+        between(700, 3800),
+        'shopping',
+        rand() > 0.5 ? 'bank' : 'upi',
+        pick(['Amazon', 'Myntra', 'Decathlon', 'Home essentials']),
+      );
     }
     if (isCurrent) add(on(21), 'expense', 7999, 'shopping', 'bank', 'Noise-cancelling headphones');
     add(someDay(), 'expense', between(350, 1200), 'entertainment', 'upi', pick(['Movie tickets', 'Concert', 'Bowling with friends']));
@@ -124,7 +169,15 @@ export function createSampleData(today: string): FinanceData {
   };
   const loans: Loan[] = [
     { id: 'loan-car', name: 'Car loan', principal: 600000, emi: 12450, interestRate: 9.2, remainingTenure: 38, nextDue: nextOn(5) },
-    { id: 'loan-personal', name: 'Personal loan', principal: 150000, emi: 5020, interestRate: 12.5, remainingTenure: 11, nextDue: nextOn(12) },
+    {
+      id: 'loan-personal',
+      name: 'Personal loan',
+      principal: 150000,
+      emi: 5020,
+      interestRate: 12.5,
+      remainingTenure: 11,
+      nextDue: nextOn(12),
+    },
   ];
 
   return { transactions, accounts, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })), budgets, goals, loans };

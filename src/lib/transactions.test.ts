@@ -12,8 +12,24 @@ const accounts: Record<string, Account> = {
 };
 const lookup = { categories, accounts };
 
-const t = (id: string, date: string, type: Transaction['type'], amount: number, category: string, account: string, note = '', toAccount?: string): Transaction => ({
-  id, date, type, amount, category, account, note, toAccount,
+const t = (
+  id: string,
+  date: string,
+  type: Transaction['type'],
+  amount: number,
+  category: string,
+  account: string,
+  note = '',
+  toAccount?: string,
+): Transaction => ({
+  id,
+  date,
+  type,
+  amount,
+  category,
+  account,
+  note,
+  toAccount,
 });
 
 const list: Transaction[] = [

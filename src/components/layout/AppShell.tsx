@@ -13,7 +13,9 @@ export function AppShell() {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         {!focused && <MobileTopBar />}
-        <main className={cn('mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6 lg:px-10 lg:pt-8', focused ? 'pt-0 pb-8' : 'pt-2 pb-28 lg:pb-12')}>
+        <main
+          className={cn('mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6 lg:px-10 lg:pt-8', focused ? 'pt-0 pb-8' : 'pt-2 pb-28 lg:pb-12')}
+        >
           <Outlet />
         </main>
       </div>

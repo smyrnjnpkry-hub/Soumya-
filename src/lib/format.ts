@@ -32,8 +32,7 @@ export const round2 = (n: number): number => Math.round((n + Number.EPSILON) * 1
 export function formatINR(amount: number, { compact = false, sign = false } = {}): string {
   const value = round2(amount);
   const abs = Math.abs(value);
-  const body =
-    compact && abs >= 1000 ? inrCompact.format(abs) : (Number.isInteger(abs) ? inrWhole : inrPaise).format(abs);
+  const body = compact && abs >= 1000 ? inrCompact.format(abs) : (Number.isInteger(abs) ? inrWhole : inrPaise).format(abs);
   if (value < 0) return MINUS + body;
   if (sign && value > 0) return `+${body}`;
   return body;

@@ -14,11 +14,23 @@ const BADGE_SIZES = {
 };
 
 /** Tinted icon badge carrying a category's colour identity. */
-export function CategoryIcon({ category, size = 'md', transfer }: { category?: Category; size?: keyof typeof BADGE_SIZES; transfer?: boolean }) {
+export function CategoryIcon({
+  category,
+  size = 'md',
+  transfer,
+}: {
+  category?: Category;
+  size?: keyof typeof BADGE_SIZES;
+  transfer?: boolean;
+}) {
   const Icon = transfer ? ArrowLeftRight : getIcon(category?.icon ?? 'tag');
   const color = transfer ? 'var(--primary)' : colorVar(category?.color ?? 'slate');
   return (
-    <span className={cn('grid shrink-0 place-items-center', BADGE_SIZES[size])} style={{ backgroundColor: tint(color, 15), color }} aria-hidden>
+    <span
+      className={cn('grid shrink-0 place-items-center', BADGE_SIZES[size])}
+      style={{ backgroundColor: tint(color, 15), color }}
+      aria-hidden
+    >
       <Icon strokeWidth={2} />
     </span>
   );
@@ -41,7 +53,17 @@ export function Amount({ value, type, className }: { value: number; type: Transa
   );
 }
 
-export function EmptyState({ icon: Icon, title, description, action }: { icon: LucideIcon; title: string; description?: ReactNode; action?: ReactNode }) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex flex-col items-center px-6 py-10 text-center">
       <span className="mb-3 grid size-12 place-items-center rounded-2xl bg-primary-soft text-primary">
@@ -71,7 +93,15 @@ export function MonthSwitcher({ value, onChange, max }: { value: string; onChang
 }
 
 /** Small label + icon for a state, so colour is never the only signal. */
-export function StatusPill({ icon: Icon, tone, children }: { icon: LucideIcon; tone: 'ok' | 'warning' | 'danger' | 'info'; children: ReactNode }) {
+export function StatusPill({
+  icon: Icon,
+  tone,
+  children,
+}: {
+  icon: LucideIcon;
+  tone: 'ok' | 'warning' | 'danger' | 'info';
+  children: ReactNode;
+}) {
   const tones = {
     ok: 'bg-income-soft text-income',
     warning: 'bg-warning-soft text-warning',

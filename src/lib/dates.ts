@@ -1,11 +1,4 @@
-import {
-  addDays as addDaysFns,
-  addMonths,
-  differenceInCalendarDays,
-  differenceInCalendarMonths,
-  format,
-  getDaysInMonth,
-} from 'date-fns';
+import { addDays as addDaysFns, addMonths, differenceInCalendarDays, differenceInCalendarMonths, format, getDaysInMonth } from 'date-fns';
 
 /**
  * All dates in the app are local calendar dates ('YYYY-MM-DD') and months are
@@ -26,8 +19,7 @@ export const monthKey = (iso: string): string => iso.slice(0, 7);
 export const addMonthsToKey = (key: string, n: number): string => format(addMonths(parseLocal(key), n), 'yyyy-MM');
 
 /** The `n` months ending at `key`, oldest first. */
-export const lastNMonths = (key: string, n: number): string[] =>
-  Array.from({ length: n }, (_, i) => addMonthsToKey(key, i - n + 1));
+export const lastNMonths = (key: string, n: number): string[] => Array.from({ length: n }, (_, i) => addMonthsToKey(key, i - n + 1));
 
 export const daysInMonth = (key: string): number => getDaysInMonth(parseLocal(key));
 
@@ -47,8 +39,7 @@ export function samePeriodLastMonth(iso: string) {
 }
 
 /** Calendar days from `from` to `to` (negative when `to` is earlier). */
-export const daysBetween = (from: string, to: string): number =>
-  differenceInCalendarDays(parseLocal(to), parseLocal(from));
+export const daysBetween = (from: string, to: string): number => differenceInCalendarDays(parseLocal(to), parseLocal(from));
 
 export const addDays = (iso: string, n: number): string => toISODate(addDaysFns(parseLocal(iso), n));
 
@@ -56,5 +47,4 @@ export const addDays = (iso: string, n: number): string => toISODate(addDaysFns(
 export const addMonthsToDate = (iso: string, n: number): string => toISODate(addMonths(parseLocal(iso), n));
 
 /** Whole calendar months from `from` to `to`. */
-export const monthsBetween = (from: string, to: string): number =>
-  differenceInCalendarMonths(parseLocal(to), parseLocal(from));
+export const monthsBetween = (from: string, to: string): number => differenceInCalendarMonths(parseLocal(to), parseLocal(from));

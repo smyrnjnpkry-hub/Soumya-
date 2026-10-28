@@ -55,6 +55,4 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
 ];
 
 /** Screens reached through "More" on the mobile bottom bar. */
-export const MORE_ITEMS = NAV_GROUPS.flatMap((g) => g.items).filter(
-  (item) => !['/', '/transactions', '/insights'].includes(item.to),
-);
+export const MORE_ITEMS = NAV_GROUPS.flatMap((g) => g.items).filter((item) => !['/', '/transactions', '/insights'].includes(item.to));

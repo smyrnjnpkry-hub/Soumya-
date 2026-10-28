@@ -21,7 +21,14 @@ export function Logo() {
           </linearGradient>
         </defs>
         <rect width="512" height="512" rx="128" fill={`url(#${gradientId})`} />
-        <g transform="translate(128 128) scale(10.667)" fill="none" stroke="#fff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+        <g
+          transform="translate(128 128) scale(10.667)"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="2.3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <path d="M6 3h12" />
           <path d="M6 8h12" />
           <path d="m6 13 8.5 8" />
@@ -116,7 +123,11 @@ export function MobileTopBar() {
         <Logo />
         <div className="flex items-center gap-0.5">
           <ThemeToggle />
-          <Link to="/settings" aria-label="Settings" className="grid size-9 place-items-center rounded-xl text-ink-2 transition hover:bg-subtle hover:text-ink">
+          <Link
+            to="/settings"
+            aria-label="Settings"
+            className="grid size-9 place-items-center rounded-xl text-ink-2 transition hover:bg-subtle hover:text-ink"
+          >
             <Settings className="size-5" />
           </Link>
         </div>
@@ -129,11 +140,19 @@ const MORE_PATHS = ['/more', ...MORE_ITEMS.map((i) => i.to)];
 
 export function BottomNav() {
   const { pathname } = useLocation();
-  const tab = (to: string, label: string, Icon: ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: boolean }>, active: boolean) => (
+  const tab = (
+    to: string,
+    label: string,
+    Icon: ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: boolean }>,
+    active: boolean,
+  ) => (
     <Link
       to={to}
       aria-current={active ? 'page' : undefined}
-      className={cn('flex flex-col items-center gap-1 py-2 text-[11px] font-semibold transition', active ? 'text-primary' : 'text-muted hover:text-ink')}
+      className={cn(
+        'flex flex-col items-center gap-1 py-2 text-[11px] font-semibold transition',
+        active ? 'text-primary' : 'text-muted hover:text-ink',
+      )}
     >
       <Icon className="size-[22px]" strokeWidth={active ? 2.3 : 2} aria-hidden />
       {label}
@@ -141,7 +160,10 @@ export function BottomNav() {
   );
   const groups = NAV_GROUPS[0].items;
   return (
-    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
+    <nav
+      aria-label="Main"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+    >
       <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center">
         {tab('/', 'Home', groups[0].icon, pathname === '/')}
         {tab('/transactions', 'Activity', groups[1].icon, pathname.startsWith('/transactions'))}
@@ -155,7 +177,12 @@ export function BottomNav() {
           </Link>
         </div>
         {tab('/insights', 'Insights', groups[2].icon, pathname === '/insights')}
-        {tab('/more', 'More', MoreIcon, MORE_PATHS.some((p) => pathname.startsWith(p)))}
+        {tab(
+          '/more',
+          'More',
+          MoreIcon,
+          MORE_PATHS.some((p) => pathname.startsWith(p)),
+        )}
       </div>
     </nav>
   );
@@ -176,9 +203,15 @@ export function Toaster() {
   const toasts = useToasts((s) => s.toasts);
   const dismiss = useToasts((s) => s.dismiss);
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex flex-col items-center gap-2 px-4 lg:bottom-6" aria-live="polite">
+    <div
+      className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex flex-col items-center gap-2 px-4 lg:bottom-6"
+      aria-live="polite"
+    >
       {toasts.map((t) => (
-        <div key={t.id} className="animate-toast-in pointer-events-auto flex max-w-sm items-center gap-4 rounded-2xl bg-ink py-3 pr-3 pl-4 text-sm text-surface shadow-pop">
+        <div
+          key={t.id}
+          className="animate-toast-in pointer-events-auto flex max-w-sm items-center gap-4 rounded-2xl bg-ink py-3 pr-3 pl-4 text-sm text-surface shadow-pop"
+        >
           <span>{t.message}</span>
           {t.action && (
             <button

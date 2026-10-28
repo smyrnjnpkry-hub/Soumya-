@@ -95,7 +95,9 @@ export default function Transactions() {
   const category = filters.categoryId ? lookup.categories[filters.categoryId] : undefined;
   const account = filters.accountId ? lookup.accounts[filters.accountId] : undefined;
   const advancedCount = [filters.categoryId, filters.accountId, customRange].filter(Boolean).length;
-  const anyFilter = Boolean(filters.query || filters.type !== 'all' || filters.categoryId || filters.accountId || filters.from || filters.to);
+  const anyFilter = Boolean(
+    filters.query || filters.type !== 'all' || filters.categoryId || filters.accountId || filters.from || filters.to,
+  );
 
   const advancedFilters = (
     <>
@@ -103,18 +105,22 @@ export default function Transactions() {
         <Select id="f-category" value={filters.categoryId ?? ''} onChange={(e) => update({ category: e.target.value || undefined })}>
           <option value="">All categories</option>
           <optgroup label="Expense">
-            {categories.filter((c) => c.type === 'expense').map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
+            {categories
+              .filter((c) => c.type === 'expense')
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
           </optgroup>
           <optgroup label="Income">
-            {categories.filter((c) => c.type === 'income').map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
+            {categories
+              .filter((c) => c.type === 'income')
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
           </optgroup>
         </Select>
       </Field>
@@ -129,10 +135,22 @@ export default function Transactions() {
         </Select>
       </Field>
       <Field label="From" htmlFor="f-from">
-        <Input id="f-from" type="date" value={filters.from ?? ''} max={filters.to} onChange={(e) => update({ from: e.target.value || undefined })} />
+        <Input
+          id="f-from"
+          type="date"
+          value={filters.from ?? ''}
+          max={filters.to}
+          onChange={(e) => update({ from: e.target.value || undefined })}
+        />
       </Field>
       <Field label="To" htmlFor="f-to">
-        <Input id="f-to" type="date" value={filters.to ?? ''} min={filters.from} onChange={(e) => update({ to: e.target.value || undefined })} />
+        <Input
+          id="f-to"
+          type="date"
+          value={filters.to ?? ''}
+          min={filters.from}
+          onChange={(e) => update({ to: e.target.value || undefined })}
+        />
       </Field>
     </>
   );
@@ -155,17 +173,29 @@ export default function Transactions() {
               onChange={(e) => update({ q: e.target.value || undefined })}
             />
           </label>
-          <Button variant="secondary" size="lg" className="relative px-3.5 lg:hidden" onClick={() => setFiltersOpen(true)} aria-label="More filters">
+          <Button
+            variant="secondary"
+            size="lg"
+            className="relative px-3.5 lg:hidden"
+            onClick={() => setFiltersOpen(true)}
+            aria-label="More filters"
+          >
             <SlidersHorizontal className="size-4" aria-hidden />
             {advancedCount > 0 && (
-              <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-primary-fill text-[11px] text-white">{advancedCount}</span>
+              <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-primary-fill text-[11px] text-white">
+                {advancedCount}
+              </span>
             )}
           </Button>
         </div>
 
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:flex-wrap sm:px-0">
           {TYPES.map((t) => (
-            <Chip key={t.value} selected={filters.type === t.value} onClick={() => update({ type: t.value === 'all' ? undefined : t.value })}>
+            <Chip
+              key={t.value}
+              selected={filters.type === t.value}
+              onClick={() => update({ type: t.value === 'all' ? undefined : t.value })}
+            >
               {t.label}
             </Chip>
           ))}
@@ -174,7 +204,9 @@ export default function Transactions() {
             <Chip
               key={p.id}
               selected={activePeriod?.id === p.id}
-              onClick={() => (activePeriod?.id === p.id ? update({ from: undefined, to: undefined }) : update({ from: p.start, to: p.end }))}
+              onClick={() =>
+                activePeriod?.id === p.id ? update({ from: undefined, to: undefined }) : update({ from: p.start, to: p.end })
+              }
             >
               {p.label}
             </Chip>
@@ -256,14 +288,24 @@ export default function Transactions() {
                 icon={SearchX}
                 title="No matching transactions"
                 description="Try a different search or clear the filters."
-                action={anyFilter && <Button variant="secondary" onClick={() => setParams({}, { replace: true })}>Clear filters</Button>}
+                action={
+                  anyFilter && (
+                    <Button variant="secondary" onClick={() => setParams({}, { replace: true })}>
+                      Clear filters
+                    </Button>
+                  )
+                }
               />
             ) : (
               <EmptyState
                 icon={Plus}
                 title="No transactions yet"
                 description="Add your first income or expense — it takes a few seconds."
-                action={<ButtonLink to="/transactions/new" icon={Plus}>Add transaction</ButtonLink>}
+                action={
+                  <ButtonLink to="/transactions/new" icon={Plus}>
+                    Add transaction
+                  </ButtonLink>
+                }
               />
             )}
           </Card>

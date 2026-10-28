@@ -51,7 +51,12 @@ function SampleBanner() {
         <Button size="sm" onClick={startFresh}>
           Start fresh
         </Button>
-        <button type="button" onClick={dismiss} aria-label="Keep sample data and hide this message" className="grid size-8 place-items-center rounded-lg text-ink-2 hover:bg-surface/60">
+        <button
+          type="button"
+          onClick={dismiss}
+          aria-label="Keep sample data and hide this message"
+          className="grid size-8 place-items-center rounded-lg text-ink-2 hover:bg-surface/60"
+        >
           <X className="size-4" />
         </button>
       </div>
@@ -73,9 +78,7 @@ export default function Dashboard() {
     const breakdown = categoryBreakdown(data.transactions, { type: 'expense', start, end });
     const report = buildInsights(data, today);
     const budgets = budgetProgress(data.budgets, data.transactions, key);
-    const nextEmi = data.loans
-      .filter((l) => l.remainingTenure > 0)
-      .sort((a, b) => a.nextDue.localeCompare(b.nextDue))[0];
+    const nextEmi = data.loans.filter((l) => l.remainingTenure > 0).sort((a, b) => a.nextDue.localeCompare(b.nextDue))[0];
     return {
       balances,
       total: Object.values(balances).reduce((s, b) => s + b, 0),
@@ -136,7 +139,13 @@ export default function Dashboard() {
           <div className="flex flex-1 items-center gap-5">
             <ProgressRing
               value={rate !== null ? Math.max(rate, 0) : 0}
-              color={rate !== null && rate >= 0.2 ? 'var(--income-mark)' : rate !== null && rate >= 0 ? 'var(--warning-mark)' : 'var(--critical-mark)'}
+              color={
+                rate !== null && rate >= 0.2
+                  ? 'var(--income-mark)'
+                  : rate !== null && rate >= 0
+                    ? 'var(--warning-mark)'
+                    : 'var(--critical-mark)'
+              }
               label="Savings rate"
             >
               <span className="text-xl font-bold text-ink">{rate !== null ? formatPercent(rate) : '—'}</span>
@@ -152,7 +161,8 @@ export default function Dashboard() {
                   {report.savings.projected !== null && (
                     <p className="mt-2 text-ink-2">
                       {report.savings.projected >= 0 ? 'On track to save ' : 'Projected shortfall '}
-                      <span className="font-semibold text-ink">{formatINR(Math.abs(Math.round(report.savings.projected)))}</span> this month.
+                      <span className="font-semibold text-ink">{formatINR(Math.abs(Math.round(report.savings.projected)))}</span> this
+                      month.
                     </p>
                   )}
                 </>
@@ -172,7 +182,10 @@ export default function Dashboard() {
             </div>
             <p className="mt-2 text-xl font-bold tracking-tight text-ink sm:text-2xl">{formatINR(totals.income)}</p>
             <div className="mt-1">
-              <Delta change={report.income.previous > 0 ? (report.income.current - report.income.previous) / report.income.previous : null} upIsGood />
+              <Delta
+                change={report.income.previous > 0 ? (report.income.current - report.income.previous) / report.income.previous : null}
+                upIsGood
+              />
             </div>
           </Card>
           <Card className="p-4">
@@ -213,7 +226,11 @@ export default function Dashboard() {
           {view.slices.length ? (
             <SpendingDonut items={view.slices} categories={lookup.categories} total={totals.expense} linkRange={{ from: start, to: end }} />
           ) : (
-            <EmptyState icon={PiggyBank} title="No spending yet this month" description="Expenses you add will be grouped by category here." />
+            <EmptyState
+              icon={PiggyBank}
+              title="No spending yet this month"
+              description="Expenses you add will be grouped by category here."
+            />
           )}
         </Card>
 
@@ -221,7 +238,11 @@ export default function Dashboard() {
         <Card>
           <CardHeader
             title="Budget"
-            subtitle={budgets.items.length ? `${formatINR(Math.max(budgets.totalLimit - budgets.totalSpent, 0))} left of ${formatINR(budgets.totalLimit)}` : formatMonth(key)}
+            subtitle={
+              budgets.items.length
+                ? `${formatINR(Math.max(budgets.totalLimit - budgets.totalSpent, 0))} left of ${formatINR(budgets.totalLimit)}`
+                : formatMonth(key)
+            }
             action={
               <Link to="/budget" className="flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline">
                 Manage <ArrowRight className="size-3.5" aria-hidden />
@@ -237,7 +258,8 @@ export default function Dashboard() {
                     <div className="mb-1.5 flex items-baseline justify-between gap-2 text-sm">
                       <span className="truncate font-medium text-ink">{category?.name ?? 'Uncategorized'}</span>
                       <span className="shrink-0 text-xs text-muted tabular-nums">
-                        <span className={cn('font-semibold', b.status === 'over' ? 'text-expense' : 'text-ink')}>{formatINR(b.spent)}</span> / {formatINR(b.budget.limit)}
+                        <span className={cn('font-semibold', b.status === 'over' ? 'text-expense' : 'text-ink')}>{formatINR(b.spent)}</span>{' '}
+                        / {formatINR(b.budget.limit)}
                       </span>
                     </div>
                     <ProgressBar value={b.ratio} color={BUDGET_COLORS[b.status]} label={`${category?.name ?? 'Budget'} used`} />
@@ -246,7 +268,15 @@ export default function Dashboard() {
               })}
             </ul>
           ) : (
-            <EmptyState icon={PiggyBank} title="No budgets yet" action={<ButtonLink to="/budget" variant="soft" size="sm">Set a budget</ButtonLink>} />
+            <EmptyState
+              icon={PiggyBank}
+              title="No budgets yet"
+              action={
+                <ButtonLink to="/budget" variant="soft" size="sm">
+                  Set a budget
+                </ButtonLink>
+              }
+            />
           )}
         </Card>
 
@@ -271,7 +301,11 @@ export default function Dashboard() {
               icon={Plus}
               title="No transactions yet"
               description="Add your first income or expense to get started."
-              action={<ButtonLink to="/transactions/new" icon={Plus}>Add transaction</ButtonLink>}
+              action={
+                <ButtonLink to="/transactions/new" icon={Plus}>
+                  Add transaction
+                </ButtonLink>
+              }
             />
           )}
         </Card>
@@ -307,7 +341,11 @@ export default function Dashboard() {
                 <p className="text-xs text-muted">
                   {(() => {
                     const days = daysBetween(today, view.nextEmi.nextDue);
-                    return days < 0 ? `Overdue by ${-days} days` : days === 0 ? 'Due today' : `Due in ${days} days · ${formatDate(view.nextEmi.nextDue, 'short')}`;
+                    return days < 0
+                      ? `Overdue by ${-days} days`
+                      : days === 0
+                        ? 'Due today'
+                        : `Due in ${days} days · ${formatDate(view.nextEmi.nextDue, 'short')}`;
                   })()}
                 </p>
               </div>

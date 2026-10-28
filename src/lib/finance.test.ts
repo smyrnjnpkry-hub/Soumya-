@@ -10,6 +10,7 @@ import {
   OTHER_ID,
   savingsRate,
   totalBalance,
+  weekdayAverages,
 } from './finance';
 import type { Account, Budget, Transaction } from './types';
 
@@ -19,7 +20,14 @@ const accounts: Account[] = [
 ];
 
 let seq = 0;
-const tx = (date: string, type: Transaction['type'], amount: number, category: string, account = 'bank', extra: Partial<Transaction> = {}): Transaction => ({
+const tx = (
+  date: string,
+  type: Transaction['type'],
+  amount: number,
+  category: string,
+  account = 'bank',
+  extra: Partial<Transaction> = {},
+): Transaction => ({
   id: `t${++seq}`,
   type,
   amount,
@@ -133,5 +141,22 @@ describe('daily cumulative spending', () => {
     expect(days[2]).toEqual({ day: 3, total: 15000 });
     expect(days[3]).toEqual({ day: 4, total: 16200 });
     expect(days[30]).toEqual({ day: 31, total: 16200 });
+  });
+});
+
+describe('weekday averages', () => {
+  it('averages spending per weekday over the days that occurred in the range', () => {
+    // 5–18 Oct 2026 is exactly two weeks, Monday to Sunday
+    const txs = [
+      tx('2026-10-05', 'expense', 100, 'food'), // Mon
+      tx('2026-10-12', 'expense', 300, 'food'), // Mon
+      tx('2026-10-10', 'expense', 1000, 'food'), // Sat
+      tx('2026-10-11', 'income', 9999, 'salary'), // Sun — not spending
+    ];
+    const days = weekdayAverages(txs, '2026-10-05', '2026-10-18');
+    expect(days.map((d) => d.label)).toEqual(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+    expect(days[0]).toMatchObject({ total: 400, average: 200 });
+    expect(days[5]).toMatchObject({ total: 1000, average: 500 });
+    expect(days[6]).toMatchObject({ total: 0, average: 0 });
   });
 });
