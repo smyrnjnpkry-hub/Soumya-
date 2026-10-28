@@ -25,6 +25,7 @@ export default defineConfig({
         theme_color: '#f5f7fb',
         background_color: '#f5f7fb',
         display: 'standalone',
+        id: './',
         start_url: './',
         scope: './',
         categories: ['finance', 'productivity'],
@@ -32,6 +33,19 @@ export default defineConfig({
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
           { src: 'maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        // Long-press the home-screen icon for one-tap entry
+        shortcuts: [
+          {
+            name: 'Add expense',
+            url: './#/transactions/new?type=expense',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Add income',
+            url: './#/transactions/new?type=income',
+            icons: [{ src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' }],
+          },
         ],
       },
       workbox: {
@@ -44,6 +58,19 @@ export default defineConfig({
   ],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
+  build: {
+    rolldownOptions: {
+      output: {
+        // Long-lived vendor chunks: an app update doesn't make returning users re-download React or Recharts.
+        codeSplitting: {
+          groups: [
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/, priority: 20 },
+            { name: 'vendor', test: /node_modules[\\/]/, priority: 10 },
+          ],
+        },
+      },
+    },
   },
   test: {
     environment: 'node',

@@ -20,8 +20,13 @@ const TYPE_OPTIONS: { value: TransactionType; label: string }[] = [
 
 const isType = (v: string | null): v is TransactionType => v === 'expense' || v === 'income' || v === 'transfer';
 
-export default function TransactionForm() {
+/** Keyed by id so moving between transactions always starts from fresh form state. */
+export default function TransactionFormRoute() {
   const { id } = useParams();
+  return <TransactionForm key={id ?? 'new'} id={id} />;
+}
+
+function TransactionForm({ id }: { id?: string }) {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const transactions = useFinance((s) => s.transactions);

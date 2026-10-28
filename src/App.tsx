@@ -1,8 +1,9 @@
 import type { ComponentType } from 'react';
 import { createHashRouter, Navigate, RouterProvider } from 'react-router';
 import { AppShell, Splash } from '@/components/layout/AppShell';
+import { StorageError } from '@/components/layout/StorageError';
 import Dashboard from '@/pages/Dashboard';
-import { useHydrated } from '@/store/finance';
+import { useBoot } from '@/store/finance';
 import '@/store/theme';
 // Listen for the install prompt from the start; it fires once, early in page load.
 import '@/store/install';
@@ -38,6 +39,8 @@ const router = createHashRouter([
 
 export function App() {
   // Wait for IndexedDB so saved data never flashes behind demo data.
-  const hydrated = useHydrated();
-  return hydrated ? <RouterProvider router={router} /> : <Splash />;
+  const status = useBoot((s) => s.status);
+  if (status === 'loading') return <Splash />;
+  if (status === 'error') return <StorageError />;
+  return <RouterProvider router={router} />;
 }

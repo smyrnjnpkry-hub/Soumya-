@@ -19,7 +19,7 @@
   --line: #e5e9f0;
   --ink: #0f172a;
   --ink-2: #475569;
-  --muted: #64748b;
+  --muted: #5f6b7e;
 
   /* --primary: accent text/icons · --primary-fill: filled buttons (white text ≥ 4.5:1) */
   --primary: #2563eb;
@@ -28,11 +28,11 @@
   --primary-soft: #eef4ff;
   --primary-ink: #1d4ed8;
 
-  /* text colours meet 4.5:1 on surface; *-mark colours are for chart marks */
+  /* text colours meet 4.5:1 on every light background (surface, canvas, subtle, soft tints); *-mark colours are for chart marks */
   --income: #15803d;
   --income-soft: #ecfdf3;
   --income-mark: #008300;
-  --expense: #dc2626;
+  --expense: #cc2222;
   --expense-soft: #fef2f2;
   --expense-mark: #e34948;
   --warning: #b45309;

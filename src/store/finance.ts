@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { todayISO } from '@/lib/dates';
@@ -66,6 +66,16 @@ const replaceById = <T extends { id: string }>(items: T[], id: string, next: Omi
   items.map((item) => (item.id === id ? ({ ...next, id } as T) : item));
 
 let askedForPersistence = false;
+
+/** Where the saved data lives (one JSON document). */
+export const STORAGE_KEY = 'fintrack-data';
+
+/**
+ * 'error' means saved data exists but couldn't be read. The app then shows a
+ * recovery screen and never writes, so a temporary failure can't overwrite real data.
+ */
+export type BootStatus = 'loading' | 'ready' | 'error';
+export const useBoot = create<{ status: BootStatus; error: string | null }>()(() => ({ status: 'loading', error: null }));
 
 export const useFinance = create<FinanceState>()(
   persist(
@@ -188,9 +198,13 @@ export const useFinance = create<FinanceState>()(
       dismissSample: () => set({ isSample: false }),
     }),
     {
-      name: 'fintrack-data',
+      name: STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => deviceStorage),
+      onRehydrateStorage: () => (_state, error) =>
+        useBoot.setState(
+          error ? { status: 'error', error: error instanceof Error ? error.message : String(error) } : { status: 'ready', error: null },
+        ),
       partialize: (s) => ({
         transactions: s.transactions,
         accounts: s.accounts,
@@ -203,17 +217,6 @@ export const useFinance = create<FinanceState>()(
     },
   ),
 );
-
-/** True once saved data has been read from IndexedDB (render nothing data-driven before that). */
-export function useHydrated() {
-  const [hydrated, setHydrated] = useState(() => useFinance.persist.hasHydrated());
-  useEffect(() => {
-    const unsubscribe = useFinance.persist.onFinishHydration(() => setHydrated(true));
-    setHydrated(useFinance.persist.hasHydrated());
-    return unsubscribe;
-  }, []);
-  return hydrated;
-}
 
 /** Id → entity maps for categories and accounts. */
 export function useLookups() {
