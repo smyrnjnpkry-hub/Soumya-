@@ -2,8 +2,8 @@ import { Outlet, ScrollRestoration, useLocation } from 'react-router';
 import { cn } from '@/lib/ui';
 import { BottomNav, MobileTopBar, Sidebar, Toaster, UpdatePrompt } from './Chrome';
 
-/** Add/edit transaction is a focused full-screen flow on phones: no top or bottom bars. */
-const isFocusedFlow = (pathname: string) => /^\/transactions\/(new|[^/]+\/edit)$/.test(pathname);
+/** Add/edit transaction and statement import are focused full-screen flows on phones: no top or bottom bars. */
+const isFocusedFlow = (pathname: string) => /^\/(transactions\/(new|[^/]+\/edit)|import)$/.test(pathname);
 
 export function AppShell() {
   const { pathname } = useLocation();

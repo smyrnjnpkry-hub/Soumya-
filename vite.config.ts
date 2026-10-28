@@ -49,7 +49,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,woff2,pdf}'],
         // Only the Latin subsets of Inter are needed (₹ lives in latin-ext).
         globIgnores: ['**/inter-cyrillic*', '**/inter-greek*', '**/inter-vietnamese*'],
         cleanupOutdatedCaches: true,
@@ -65,6 +65,8 @@ export default defineConfig({
         // Long-lived vendor chunks: an app update doesn't make returning users re-download React or Recharts.
         codeSplitting: {
           groups: [
+            // Only the import screen needs pdf.js, so it stays out of the shared vendor chunk
+            { name: 'pdfjs', test: /node_modules[\\/]pdfjs-dist[\\/]/, priority: 30 },
             { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/, priority: 20 },
             { name: 'vendor', test: /node_modules[\\/]/, priority: 10 },
           ],

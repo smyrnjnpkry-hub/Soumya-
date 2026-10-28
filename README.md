@@ -21,6 +21,7 @@ It is a Progressive Web App (PWA), so you can install it on your phone or comput
 | **Loans & EMI**  | Outstanding principal, interest left, payoff date, due/overdue reminders, "Mark EMI paid" (optionally recorded as an expense), EMI calculator                                                      |
 | **Reports**      | Pie charts for expenses and income, income vs expenses, monthly trend, spending by weekday, largest expenses, CSV export for any period                                                            |
 | **Accounts**     | Cash, bank and UPI balances with this month's money in and out                                                                                                                                     |
+| **Import**       | Add months of transactions from your bank's **PDF statement**: suggested categories, duplicates skipped, checked against the bank's own totals, undo straight after (see below)                    |
 | **Settings**     | Light / dark / system theme, install the app, export CSV, full backup and restore, sample data, erase everything                                                                                   |
 
 ### Smart insights (no AI service needed)
@@ -41,6 +42,25 @@ last month** (1–20 Oct vs 1–20 Sep), so a half-finished month is never judge
 
 The month-end projection scales your spending by last month's pace (so rent on the 3rd doesn't distort it), falling back to a
 straight-line estimate early in the month. All thresholds live in one table at the top of [`src/lib/insights.ts`](src/lib/insights.ts).
+
+### Import your bank statement (PDF)
+
+**Import statement** (in the menu, and on the Transactions, Accounts and Settings screens) reads the PDF statement you
+download from net banking or your bank's app:
+
+1. **Choose PDF** — or tap **Try a sample statement** to see how it works with made-up data. Password-protected statements
+   are fine; you'll be asked for the password.
+2. **Review** — every transaction is listed with a short description (`UPI-ZOMATO LTD-ZOMATO.RZP@…` becomes _Zomato Ltd_)
+   and a suggested category. Change any of them; picking a category for one payment to a person applies it to their other
+   payments too. ATM withdrawals become transfers to your Cash account. Rows already in FinTrack are unticked so nothing is
+   added twice. A badge tells you whether the rows add up to the **bank's own totals**.
+3. **Import** into a new account (named like _HDFC Bank ••5678_, opened at the statement's opening balance so its balance
+   matches the bank's) or an existing one. **Undo** is offered straight after.
+
+The PDF is read **on your device** — it is never uploaded, and only the last four digits of the account number are kept.
+It's built and tested on HDFC Bank statements; statements from other banks with Date / Narration / Withdrawal / Deposit /
+Balance columns usually work too. Scanned or photographed statements can't be read (they have no text). Next time you
+import, categories you chose before are remembered.
 
 ## Run it on your computer
 
@@ -88,6 +108,7 @@ Once installed it opens full-screen and works with no internet connection. Long-
 - Clearing your browser's site data deletes it, so use **Settings → Back up everything** now and then and keep the file safe.
   **Restore from backup** brings it all back (on the same or a new device).
 - **Export CSV** gives you a spreadsheet of your transactions (opens in Excel or Google Sheets).
+- **Statement import** reads PDFs in the browser; the file isn't uploaded or stored.
 
 ## Development
 
@@ -100,13 +121,18 @@ Once installed it opens full-screen and works with no internet connection. Long-
 | `npm run typecheck` | Type-check only                          |
 | `npm run format`    | Format the code with Prettier            |
 
+The sample statement (`public/sample-statement.pdf`, fictional "Demo Bank" data) is drawn by
+`python3 scripts/make-sample-statement.py` (needs `pip install reportlab`), which also writes the rows the import test
+expects.
+
 **Stack:** React 19 · TypeScript · Vite 8 · Tailwind CSS 4 · Recharts 3 · Lucide icons · Zustand · idb-keyval (IndexedDB) ·
-vite-plugin-pwa (Workbox) · date-fns · Vitest.
+vite-plugin-pwa (Workbox) · pdf.js (statement import) · date-fns · Vitest.
 
 ```
 src/
   lib/          Pure, unit-tested logic: money/date formatting, balances, budgets, loans/EMI maths,
                 CSV, backup validation, chart scales, sample data and the insights engine
+  lib/statement/  Bank statement import: PDF text → transactions, categories, duplicates
   store/        Zustand stores: finance data (persisted to IndexedDB), theme, toasts, install prompt
   components/   UI kit, charts, forms, layout (sidebar, bottom nav), transaction rows, insight items
   pages/        One file per screen

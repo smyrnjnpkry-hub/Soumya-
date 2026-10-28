@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildInsights } from './insights';
-import { createSampleData } from './seed';
+import { createSampleData, isSampleTransaction } from './seed';
 
 const TODAY = '2026-10-28';
 
@@ -42,5 +42,10 @@ describe('createSampleData', () => {
 
   it('gives the Insights screen something to say', () => {
     expect(buildInsights(data, TODAY).insights.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('marks its transactions so they can be told apart from ones you add', () => {
+    expect(data.transactions.every(isSampleTransaction)).toBe(true);
+    expect(isSampleTransaction({ ...data.transactions[0], id: '3f2b6c1e-9d7a-4e4b-8a51-0c2d9e7f6a11' })).toBe(false);
   });
 });

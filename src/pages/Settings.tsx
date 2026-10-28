@@ -3,6 +3,7 @@ import {
   Database,
   Download,
   FileDown,
+  FileUp,
   HardDrive,
   Monitor,
   Moon,
@@ -178,6 +179,16 @@ export default function Settings() {
                 <Button variant="secondary" size="sm" icon={Download} onClick={backup}>
                   Download backup
                 </Button>
+              }
+            />
+            <Row
+              icon={FileUp}
+              title="Import a bank statement"
+              description="Add transactions from your bank’s PDF statement. It’s read on this device; nothing is uploaded."
+              action={
+                <ButtonLink to="/import" variant="secondary" size="sm" icon={FileUp}>
+                  Import PDF
+                </ButtonLink>
               }
             />
             <Row

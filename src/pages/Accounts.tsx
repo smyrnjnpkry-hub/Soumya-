@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ArrowRight, Pencil, Plus, Wallet } from 'lucide-react';
+import { ArrowLeftRight, ArrowRight, FileUp, Pencil, Plus, Wallet } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { AccountForm } from '@/components/forms/AccountForm';
@@ -44,9 +44,14 @@ export default function Accounts() {
         title="Accounts"
         subtitle="Cash, bank and UPI balances in one place"
         actions={
-          <Button icon={Plus} onClick={() => setEditing('new')}>
-            Add account
-          </Button>
+          <>
+            <ButtonLink to="/import" variant="secondary" icon={FileUp}>
+              Import statement
+            </ButtonLink>
+            <Button icon={Plus} onClick={() => setEditing('new')}>
+              Add account
+            </Button>
+          </>
         }
       />
 

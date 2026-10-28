@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { accountBalances } from '@/lib/finance';
 import type { FinanceData } from '@/lib/types';
+import { STATEMENT_ACCOUNT } from '@/lib/statement/types';
 import { useFinance } from './finance';
 
 const fixture = (): FinanceData => ({
@@ -115,5 +117,70 @@ describe('goals and transactions', () => {
     expect(s.categories.some((c) => c.id === 'salary')).toBe(true);
     expect(s.accounts.map((a) => a.type).sort()).toEqual(['bank', 'cash', 'upi']);
     expect(s.isSample).toBe(false);
+  });
+});
+
+describe('statement import', () => {
+  const rows = [
+    { type: 'income' as const, amount: 50000, date: '2026-10-05', category: 'salary', account: STATEMENT_ACCOUNT, note: 'Acme Labs' },
+    {
+      type: 'transfer' as const,
+      amount: 2000,
+      date: '2026-10-06',
+      category: '',
+      account: STATEMENT_ACCOUNT,
+      toAccount: 'cash',
+      note: 'ATM withdrawal',
+    },
+    { type: 'expense' as const, amount: 450.5, date: '2026-10-07', category: 'snacks', account: STATEMENT_ACCOUNT, note: 'Zomato' },
+  ];
+  const balances = () => accountBalances(state().accounts, state().transactions);
+
+  it('adds every row to the chosen account in one step, newest first', () => {
+    const receipt = state().importStatement({ account: 'bank', transactions: rows });
+    expect(receipt).toMatchObject({ accountId: 'bank', createdAccount: false });
+    expect(receipt.ids).toHaveLength(3);
+    const added = state().transactions.slice(0, 3);
+    expect(added.map((t) => [t.note, t.account, t.toAccount])).toEqual([
+      ['Zomato', 'bank', undefined],
+      ['ATM withdrawal', 'bank', 'cash'],
+      ['Acme Labs', 'bank', undefined],
+    ]);
+    expect(state().transactions).toHaveLength(6);
+  });
+
+  it('can create the account, opening it at the statement’s opening balance', () => {
+    const receipt = state().importStatement({ account: { name: 'HDFC Bank ••5678', type: 'bank', balance: 10000 }, transactions: rows });
+    expect(receipt.createdAccount).toBe(true);
+    expect(state().accounts.find((a) => a.id === receipt.accountId)?.name).toBe('HDFC Bank ••5678');
+    // 10,000 + 50,000 − 2,000 − 450.50
+    expect(balances()[receipt.accountId]).toBe(57549.5);
+  });
+
+  it('undo removes the rows and the account it created', () => {
+    const receipt = state().importStatement({ account: { name: 'HDFC Bank ••5678', type: 'bank', balance: 10000 }, transactions: rows });
+    state().undoImport(receipt);
+    expect(state().transactions.map((t) => t.id)).toEqual(['t1', 't2', 't3']);
+    expect(state().accounts.map((a) => a.id)).toEqual(['bank', 'cash', 'upi']);
+  });
+
+  it('can set an existing account’s opening balance, and undo puts it back', () => {
+    const receipt = state().importStatement({ account: 'upi', openingBalance: 1200, transactions: rows });
+    expect(state().accounts.find((a) => a.id === 'upi')?.balance).toBe(1200);
+    state().undoImport(receipt);
+    expect(state().accounts.find((a) => a.id === 'upi')?.balance).toBe(0);
+    expect(state().transactions).toHaveLength(3);
+  });
+
+  it('can replace the sample data, and undo brings the sample back', () => {
+    state().replaceAll(fixture(), true);
+    const receipt = state().importStatement({ account: 'bank', transactions: rows, fresh: true });
+    expect(state().isSample).toBe(false);
+    expect(state().transactions.map((t) => t.note)).toEqual(['Zomato', 'ATM withdrawal', 'Acme Labs']);
+    expect(state().goals).toEqual([]);
+    state().undoImport(receipt);
+    expect(state().isSample).toBe(true);
+    expect(state().transactions.map((t) => t.id)).toEqual(['t1', 't2', 't3']);
+    expect(state().goals).toHaveLength(1);
   });
 });

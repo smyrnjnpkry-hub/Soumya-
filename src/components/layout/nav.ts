@@ -2,6 +2,7 @@ import {
   Activity,
   ArrowLeftRight,
   ChartPie,
+  FileUp,
   Gauge,
   Landmark,
   LayoutDashboard,
@@ -49,6 +50,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: 'Manage',
     items: [
       { to: '/accounts', label: 'Accounts', icon: Wallet, description: 'Cash, bank and UPI balances' },
+      { to: '/import', label: 'Import statement', icon: FileUp, description: 'Add transactions from a bank PDF' },
       { to: '/settings', label: 'Settings', icon: Settings, description: 'Theme, export and data' },
     ],
   },

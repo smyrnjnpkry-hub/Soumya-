@@ -1,4 +1,4 @@
-import { Plus, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
+import { FileUp, Plus, Search, SearchX, SlidersHorizontal, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { TransactionRow } from '@/components/transactions/TransactionRow';
@@ -157,7 +157,15 @@ export default function Transactions() {
 
   return (
     <>
-      <PageHeader title="Transactions" subtitle={`${filtered.length} ${filtered.length === 1 ? 'transaction' : 'transactions'}`} />
+      <PageHeader
+        title="Transactions"
+        subtitle={`${filtered.length} ${filtered.length === 1 ? 'transaction' : 'transactions'}`}
+        actions={
+          <ButtonLink to="/import" variant="secondary" size="sm" icon={FileUp}>
+            Import statement
+          </ButtonLink>
+        }
+      />
 
       {/* Search + filters */}
       <div className="space-y-3">

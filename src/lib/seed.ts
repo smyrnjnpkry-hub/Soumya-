@@ -2,6 +2,11 @@ import { addMonthsToDate, addMonthsToKey, daysInMonth, lastNMonths, monthKey } f
 import { DEFAULT_CATEGORIES } from './defaults';
 import type { Account, Budget, FinanceData, Goal, Loan, Transaction } from './types';
 
+const SAMPLE_PREFIX = 'sample-';
+
+/** Demo transactions have recognisable ids, so anything you've added since can be told apart. */
+export const isSampleTransaction = (t: Pick<Transaction, 'id'>) => t.id.startsWith(SAMPLE_PREFIX);
+
 /** Small deterministic PRNG so the demo looks the same on every device. */
 function mulberry32(seed: number) {
   let a = seed;
@@ -43,7 +48,7 @@ export function createSampleData(today: string): FinanceData {
     toAccount?: string,
   ) => {
     if (date > today) return;
-    transactions.push({ id: `sample-${++seq}`, type, amount, date, category, account, note, ...(toAccount ? { toAccount } : {}) });
+    transactions.push({ id: `${SAMPLE_PREFIX}${++seq}`, type, amount, date, category, account, note, ...(toAccount ? { toAccount } : {}) });
   };
 
   const currentKey = monthKey(today);

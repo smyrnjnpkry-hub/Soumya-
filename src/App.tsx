@@ -30,6 +30,7 @@ const router = createHashRouter([
       { path: 'reports', lazy: page(() => import('@/pages/Reports')) },
       { path: 'insights', lazy: page(() => import('@/pages/Insights')) },
       { path: 'accounts', lazy: page(() => import('@/pages/Accounts')) },
+      { path: 'import', lazy: page(() => import('@/pages/ImportStatement')) },
       { path: 'settings', lazy: page(() => import('@/pages/Settings')) },
       { path: 'more', lazy: page(() => import('@/pages/More')) },
       { path: '*', element: <Navigate to="/" replace /> },

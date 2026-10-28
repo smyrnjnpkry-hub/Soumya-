@@ -1,0 +1,439 @@
+{
+  "bank": "Demo Bank",
+  "accountLast4": "6789",
+  "period": {
+    "from": "2026-07-01",
+    "to": "2026-09-30"
+  },
+  "openingBalance": 42350.75,
+  "closingBalance": 98863.5,
+  "rows": [
+    {
+      "date": "2026-07-01",
+      "narration": "NEFT CR-DEMO0000101-BRIGHTPATH SOFTWARE PVT LTD-ASHA VERMA-N182026123456 SALARY FOR JUN 2026",
+      "direction": "credit",
+      "amount": 68500.0,
+      "balance": 110850.75
+    },
+    {
+      "date": "2026-07-01",
+      "narration": "UPI-MANOJ SHARMA-MKSHARMA.HOME@OKDEMO-DEMO0001234-618201234501-HOUSE RENT JULY",
+      "direction": "debit",
+      "amount": 18000.0,
+      "balance": 92850.75
+    },
+    {
+      "date": "2026-07-02",
+      "narration": "UPI-ZOMATO LTD-ZOMATO.ORDER@DEMOBANK-DEMO0MERUPI-618201234502-PAY VIA RAZORPAY",
+      "direction": "debit",
+      "amount": 486.0,
+      "balance": 92364.75
+    },
+    {
+      "date": "2026-07-03",
+      "narration": "UPI-BIGBASKET-BIGBASKET.PAY@DEMOBANK-DEMO0MERUPI-618201234503-UPI",
+      "direction": "debit",
+      "amount": 2145.3,
+      "balance": 90219.45
+    },
+    {
+      "date": "2026-07-04",
+      "narration": "POS 512345XXXXXX7788 HP PETROL PUMP PUNE",
+      "direction": "debit",
+      "amount": 1500.0,
+      "balance": 88719.45
+    },
+    {
+      "date": "2026-07-05",
+      "narration": "ACH D- DEMO HOUSING FINANCE LTD-LOAN0042137",
+      "direction": "debit",
+      "amount": 12450.0,
+      "balance": 76269.45
+    },
+    {
+      "date": "2026-07-06",
+      "narration": "UPI-AIRTEL PREPAID-AIRTEL.RECHARGE@DEMOBANK-DEMO0MERUPI-618201234504-MOBILE RECHARGE",
+      "direction": "debit",
+      "amount": 299.0,
+      "balance": 75970.45
+    },
+    {
+      "date": "2026-07-08",
+      "narration": "NWD-512345XXXXXX7788-00123456-PUNE CAMP",
+      "direction": "debit",
+      "amount": 3000.0,
+      "balance": 72970.45
+    },
+    {
+      "date": "2026-07-09",
+      "narration": "UPI-UBER INDIA-UBER.RIDES@DEMOBANK-DEMO0MERUPI-618201234505-UPI",
+      "direction": "debit",
+      "amount": 246.75,
+      "balance": 72723.7
+    },
+    {
+      "date": "2026-07-10",
+      "narration": "UPI-NETFLIX-NETFLIX.SUB@DEMOBANK-DEMO0MERUPI-618201234506-AUTOPAY",
+      "direction": "debit",
+      "amount": 649.0,
+      "balance": 72074.7
+    },
+    {
+      "date": "2026-07-12",
+      "narration": "UPI-APOLLO PHARMACY-APOLLO.PHARMACY@DEMOBANK-DEMO0MERUPI-618201234507-MEDICINES",
+      "direction": "debit",
+      "amount": 812.4,
+      "balance": 71262.3
+    },
+    {
+      "date": "2026-07-13",
+      "narration": "UPI-RAHUL MEHTA-RAHULMEHTA@OKDEMO-DEMO0002345-618201234508-DINNER SPLIT",
+      "direction": "credit",
+      "amount": 650.0,
+      "balance": 71912.3
+    },
+    {
+      "date": "2026-07-14",
+      "narration": "POS 512345XXXXXX7788 612345 14JUL26 19:42:10 PUNE WESTSIDE STORE",
+      "direction": "debit",
+      "amount": 2799.0,
+      "balance": 69113.3
+    },
+    {
+      "date": "2026-07-15",
+      "narration": "UPI-SWIGGY-SWIGGY.ORDER@DEMOBANK-DEMO0MERUPI-618201234509-UPI",
+      "direction": "debit",
+      "amount": 384.0,
+      "balance": 68729.3
+    },
+    {
+      "date": "2026-07-17",
+      "narration": "IB BILLPAY DR-MSEDCL-DEMO123456789",
+      "direction": "debit",
+      "amount": 1184.0,
+      "balance": 67545.3
+    },
+    {
+      "date": "2026-07-19",
+      "narration": "UPI-AMAZON PAY GROCERIES-AMAZONPAYGROCERY@DEMOBANK-DEMO0MERUPI-618201234510-UPI SEND MONEY",
+      "direction": "debit",
+      "amount": 1276.0,
+      "balance": 66269.3
+    },
+    {
+      "date": "2026-07-20",
+      "narration": "CRV POS 512345******7788 WESTSIDE STORE",
+      "direction": "credit",
+      "amount": 899.0,
+      "balance": 67168.3
+    },
+    {
+      "date": "2026-07-22",
+      "narration": "UPI-CULT FIT-CULTFIT.PAY@DEMOBANK-DEMO0MERUPI-618201234511-MEMBERSHIP",
+      "direction": "debit",
+      "amount": 1999.0,
+      "balance": 65169.3
+    },
+    {
+      "date": "2026-07-24",
+      "narration": "UPI-PRIYA NAIR-PRIYANAIR@OKDEMO-DEMO0003456-618201234512-UPI SEND MONEY",
+      "direction": "debit",
+      "amount": 1200.0,
+      "balance": 63969.3
+    },
+    {
+      "date": "2026-07-26",
+      "narration": "UPI-INOX LEISURE-INOX.TICKETS@DEMOBANK-DEMO0MERUPI-618201234513-MOVIE TICKETS",
+      "direction": "debit",
+      "amount": 760.0,
+      "balance": 63209.3
+    },
+    {
+      "date": "2026-07-28",
+      "narration": "UPI-ZEPTO-ZEPTO.ORDERS@DEMOBANK-DEMO0MERUPI-618201234514-UPI",
+      "direction": "debit",
+      "amount": 645.5,
+      "balance": 62563.8
+    },
+    {
+      "date": "2026-07-30",
+      "narration": "FUEL SURCHG 512345******7788 DT 04/07/26",
+      "direction": "debit",
+      "amount": 15.0,
+      "balance": 62548.8
+    },
+    {
+      "date": "2026-08-01",
+      "narration": "NEFT CR-DEMO0000101-BRIGHTPATH SOFTWARE PVT LTD-ASHA VERMA-N182026123457 SALARY FOR JUL 2026",
+      "direction": "credit",
+      "amount": 68500.0,
+      "balance": 131048.8
+    },
+    {
+      "date": "2026-08-01",
+      "narration": "UPI-MANOJ SHARMA-MKSHARMA.HOME@OKDEMO-DEMO0001234-618201234515-HOUSE RENT AUGUST",
+      "direction": "debit",
+      "amount": 18000.0,
+      "balance": 113048.8
+    },
+    {
+      "date": "2026-08-02",
+      "narration": "UPI-SWIGGY-SWIGGY.ORDER@DEMOBANK-DEMO0MERUPI-618201234516-UPI",
+      "direction": "debit",
+      "amount": 512.0,
+      "balance": 112536.8
+    },
+    {
+      "date": "2026-08-04",
+      "narration": "UPI-BIGBASKET-BIGBASKET.PAY@DEMOBANK-DEMO0MERUPI-618201234517-UPI",
+      "direction": "debit",
+      "amount": 1890.6,
+      "balance": 110646.2
+    },
+    {
+      "date": "2026-08-05",
+      "narration": "ACH D- DEMO HOUSING FINANCE LTD-LOAN0042137",
+      "direction": "debit",
+      "amount": 12450.0,
+      "balance": 98196.2
+    },
+    {
+      "date": "2026-08-06",
+      "narration": "UPI-AIRTEL PREPAID-AIRTEL.RECHARGE@DEMOBANK-DEMO0MERUPI-618201234518-MOBILE RECHARGE",
+      "direction": "debit",
+      "amount": 299.0,
+      "balance": 97897.2
+    },
+    {
+      "date": "2026-08-07",
+      "narration": "UPI-MAKEMYTRIP-MAKEMYTRIP.FLIGHTS@DEMOBANK-DEMO0MERUPI-618201234519-PUNE TO KOCHI",
+      "direction": "debit",
+      "amount": 6842.0,
+      "balance": 91055.2
+    },
+    {
+      "date": "2026-08-09",
+      "narration": "POS 512345XXXXXX7788 HP PETROL PUMP PUNE",
+      "direction": "debit",
+      "amount": 1800.0,
+      "balance": 89255.2
+    },
+    {
+      "date": "2026-08-10",
+      "narration": "UPI-NETFLIX-NETFLIX.SUB@DEMOBANK-DEMO0MERUPI-618201234520-AUTOPAY",
+      "direction": "debit",
+      "amount": 649.0,
+      "balance": 88606.2
+    },
+    {
+      "date": "2026-08-11",
+      "narration": "UPI-UBER INDIA-UBER.RIDES@DEMOBANK-DEMO0MERUPI-618201234521-UPI",
+      "direction": "debit",
+      "amount": 318.2,
+      "balance": 88288.0
+    },
+    {
+      "date": "2026-08-13",
+      "narration": "UPI-SUNRISE PUBLIC SCHOOL-SUNRISESCHOOL@DEMOBANK-DEMO0MERUPI-618201234522-TERM FEE",
+      "direction": "debit",
+      "amount": 9500.0,
+      "balance": 78788.0
+    },
+    {
+      "date": "2026-08-14",
+      "narration": "NWD-512345XXXXXX7788-00123457-KOCHI MG ROAD",
+      "direction": "debit",
+      "amount": 2000.0,
+      "balance": 76788.0
+    },
+    {
+      "date": "2026-08-16",
+      "narration": "UPI-ZOMATO LTD-ZOMATO.ORDER@DEMOBANK-DEMO0MERUPI-618201234523-PAY VIA RAZORPAY",
+      "direction": "debit",
+      "amount": 742.0,
+      "balance": 76046.0
+    },
+    {
+      "date": "2026-08-18",
+      "narration": "IB BILLPAY DR-MSEDCL-DEMO123456790",
+      "direction": "debit",
+      "amount": 1320.0,
+      "balance": 74726.0
+    },
+    {
+      "date": "2026-08-19",
+      "narration": "UPI-AMAZON INDIA-AMAZON.SHOP@DEMOBANK-DEMO0MERUPI-618201234524-UPI",
+      "direction": "debit",
+      "amount": 1599.0,
+      "balance": 73127.0
+    },
+    {
+      "date": "2026-08-21",
+      "narration": "UPI-DEMOPAY CASHBACK-REWARDS@DEMOPAY-DEMO0PAYUPI-618201234525-CASHBACK",
+      "direction": "credit",
+      "amount": 120.0,
+      "balance": 73247.0
+    },
+    {
+      "date": "2026-08-23",
+      "narration": "UPI-SMILE DENTAL CLINIC-SMILEDENTAL@OKDEMO-DEMO0004567-618201234526-CHECKUP",
+      "direction": "debit",
+      "amount": 1500.0,
+      "balance": 71747.0
+    },
+    {
+      "date": "2026-08-25",
+      "narration": "UPI-PRIYA NAIR-PRIYANAIR@OKDEMO-DEMO0003456-618201234527-PAYMENT FROM PHONE",
+      "direction": "credit",
+      "amount": 2400.0,
+      "balance": 74147.0
+    },
+    {
+      "date": "2026-08-27",
+      "narration": "UPI-AKSHAYA FOUNDATION-AKSHAYA.DONATE@DEMOBANK-DEMO0MERUPI-618201234528-DONATION",
+      "direction": "debit",
+      "amount": 1000.0,
+      "balance": 73147.0
+    },
+    {
+      "date": "2026-08-29",
+      "narration": "UPI-ZEPTO-ZEPTO.ORDERS@DEMOBANK-DEMO0MERUPI-618201234529-UPI",
+      "direction": "debit",
+      "amount": 923.4,
+      "balance": 72223.6
+    },
+    {
+      "date": "2026-09-01",
+      "narration": "NEFT CR-DEMO0000101-BRIGHTPATH SOFTWARE PVT LTD-ASHA VERMA-N182026123458 SALARY FOR AUG 2026",
+      "direction": "credit",
+      "amount": 68500.0,
+      "balance": 140723.6
+    },
+    {
+      "date": "2026-09-01",
+      "narration": "UPI-MANOJ SHARMA-MKSHARMA.HOME@OKDEMO-DEMO0001234-618201234530-HOUSE RENT SEPTEMBER",
+      "direction": "debit",
+      "amount": 18000.0,
+      "balance": 122723.6
+    },
+    {
+      "date": "2026-09-03",
+      "narration": "UPI-BIGBASKET-BIGBASKET.PAY@DEMOBANK-DEMO0MERUPI-618201234531-UPI",
+      "direction": "debit",
+      "amount": 2310.8,
+      "balance": 120412.8
+    },
+    {
+      "date": "2026-09-05",
+      "narration": "ACH D- DEMO HOUSING FINANCE LTD-LOAN0042137",
+      "direction": "debit",
+      "amount": 12450.0,
+      "balance": 107962.8
+    },
+    {
+      "date": "2026-09-06",
+      "narration": "UPI-AIRTEL PREPAID-AIRTEL.RECHARGE@DEMOBANK-DEMO0MERUPI-618201234532-MOBILE RECHARGE",
+      "direction": "debit",
+      "amount": 299.0,
+      "balance": 107663.8
+    },
+    {
+      "date": "2026-09-07",
+      "narration": "ACH D- DEMO LIFE INSURANCE-POL778899",
+      "direction": "debit",
+      "amount": 2450.0,
+      "balance": 105213.8
+    },
+    {
+      "date": "2026-09-08",
+      "narration": "UPI-SWIGGY-SWIGGY.ORDER@DEMOBANK-DEMO0MERUPI-618201234533-UPI",
+      "direction": "debit",
+      "amount": 455.0,
+      "balance": 104758.8
+    },
+    {
+      "date": "2026-09-10",
+      "narration": "UPI-NETFLIX-NETFLIX.SUB@DEMOBANK-DEMO0MERUPI-618201234534-AUTOPAY",
+      "direction": "debit",
+      "amount": 649.0,
+      "balance": 104109.8
+    },
+    {
+      "date": "2026-09-12",
+      "narration": "NWD-512345XXXXXX7788-00123458-PUNE CAMP",
+      "direction": "debit",
+      "amount": 2500.0,
+      "balance": 101609.8
+    },
+    {
+      "date": "2026-09-13",
+      "narration": "UPI-MYNTRA DESIGNS-MYNTRA.PAY@DEMOBANK-DEMO0MERUPI-618201234535-UPI",
+      "direction": "debit",
+      "amount": 2199.0,
+      "balance": 99410.8
+    },
+    {
+      "date": "2026-09-15",
+      "narration": "POS 512345XXXXXX7788 HP PETROL PUMP PUNE",
+      "direction": "debit",
+      "amount": 1650.0,
+      "balance": 97760.8
+    },
+    {
+      "date": "2026-09-16",
+      "narration": "UPI-LOOKS SALON-LOOKSSALON@OKDEMO-DEMO0005678-618201234536-HAIRCUT",
+      "direction": "debit",
+      "amount": 650.0,
+      "balance": 97110.8
+    },
+    {
+      "date": "2026-09-18",
+      "narration": "IB BILLPAY DR-MSEDCL-DEMO123456791",
+      "direction": "debit",
+      "amount": 1240.0,
+      "balance": 95870.8
+    },
+    {
+      "date": "2026-09-20",
+      "narration": "UPI-UBER INDIA-UBER.RIDES@DEMOBANK-DEMO0MERUPI-618201234537-UPI",
+      "direction": "debit",
+      "amount": 289.0,
+      "balance": 95581.8
+    },
+    {
+      "date": "2026-09-22",
+      "narration": "UPI-ZOMATO LTD-ZOMATO.ORDER@DEMOBANK-DEMO0MERUPI-618201234538-PAY VIA RAZORPAY",
+      "direction": "debit",
+      "amount": 618.0,
+      "balance": 94963.8
+    },
+    {
+      "date": "2026-09-24",
+      "narration": "UPI-RAHUL MEHTA-RAHULMEHTA@OKDEMO-DEMO0002345-618201234539-UPI SEND MONEY",
+      "direction": "debit",
+      "amount": 800.0,
+      "balance": 94163.8
+    },
+    {
+      "date": "2026-09-26",
+      "narration": "UPI-ZEPTO-ZEPTO.ORDERS@DEMOBANK-DEMO0MERUPI-618201234540-UPI",
+      "direction": "debit",
+      "amount": 712.3,
+      "balance": 93451.5
+    },
+    {
+      "date": "2026-09-28",
+      "narration": "CASH DEPOSIT BY SELF-PUNE CAMP BRANCH",
+      "direction": "credit",
+      "amount": 5000.0,
+      "balance": 98451.5
+    },
+    {
+      "date": "2026-09-30",
+      "narration": "000123456789:Int.Pd:01-07-2026 to 30-09-2026",
+      "direction": "credit",
+      "amount": 412.0,
+      "balance": 98863.5
+    }
+  ]
+}

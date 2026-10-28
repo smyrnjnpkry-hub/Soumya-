@@ -6,6 +6,7 @@ import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES } from '@/lib/defaults';
 import { createId } from '@/lib/id';
 import { advanceLoan } from '@/lib/loans';
 import { createSampleData } from '@/lib/seed';
+import { STATEMENT_ACCOUNT } from '@/lib/statement/types';
 import type { Account, Budget, Category, FinanceData, Goal, Loan, Transaction } from '@/lib/types';
 import { deviceStorage, requestPersistentStorage } from './storage';
 
@@ -48,9 +49,32 @@ export interface FinanceState extends FinanceData {
   /** Marks the next EMI paid; with an account it is also recorded as an expense */
   payEmi: (id: string, record?: { accountId: string; date: string }) => void;
 
+  /** Adds a statement's rows in one step, optionally creating their account; returns what undoImport needs */
+  importStatement: (plan: ImportPlan) => ImportReceipt;
+  undoImport: (receipt: ImportReceipt) => void;
+
   replaceAll: (data: FinanceData, isSample?: boolean) => void;
   startFresh: () => void;
   dismissSample: () => void;
+}
+
+export interface ImportPlan {
+  /** An existing account id, or a new account to create. Rows refer to it as STATEMENT_ACCOUNT. */
+  account: string | Draft<Account>;
+  /** Replaces an existing account's opening balance */
+  openingBalance?: number;
+  transactions: Draft<Transaction>[];
+  /** Clear the sample data first */
+  fresh?: boolean;
+}
+
+export interface ImportReceipt {
+  accountId: string;
+  ids: string[];
+  createdAccount: boolean;
+  previousOpening: number | null;
+  /** Everything as it was, when the import replaced the sample data */
+  previous: (FinanceData & { isSample: boolean }) | null;
 }
 
 const emptyData = (): FinanceData => ({
@@ -60,6 +84,15 @@ const emptyData = (): FinanceData => ({
   budgets: [],
   goals: [],
   loans: [],
+});
+
+const pickData = (s: FinanceData): FinanceData => ({
+  transactions: s.transactions,
+  accounts: s.accounts,
+  categories: s.categories,
+  budgets: s.budgets,
+  goals: s.goals,
+  loans: s.loans,
 });
 
 const replaceById = <T extends { id: string }>(items: T[], id: string, next: Omit<T, 'id'>): T[] =>
@@ -193,6 +226,50 @@ export const useFinance = create<FinanceState>()(
           return { loans, transactions: [expense, ...s.transactions] };
         }),
 
+      importStatement: (plan) => {
+        const current = get();
+        const previous = plan.fresh ? { ...pickData(current), isSample: current.isSample } : null;
+        const start = plan.fresh ? emptyData() : pickData(current);
+        let accountId: string;
+        let accounts = start.accounts;
+        let previousOpening: number | null = null;
+        if (typeof plan.account === 'string') {
+          accountId = plan.account;
+          const { openingBalance } = plan;
+          if (openingBalance !== undefined) {
+            previousOpening = accounts.find((a) => a.id === accountId)?.balance ?? null;
+            accounts = accounts.map((a) => (a.id === accountId ? { ...a, balance: openingBalance } : a));
+          }
+        } else {
+          accountId = createId();
+          accounts = [...accounts, { ...plan.account, id: accountId }];
+        }
+        const resolve = (id: string) => (id === STATEMENT_ACCOUNT ? accountId : id);
+        // Newest first, like transactions added one by one
+        const added: Transaction[] = plan.transactions
+          .map((t) => ({ ...t, id: createId(), account: resolve(t.account), ...(t.toAccount ? { toAccount: resolve(t.toAccount) } : {}) }))
+          .reverse();
+        set({ ...start, accounts, transactions: [...added, ...start.transactions], isSample: plan.fresh ? false : current.isSample });
+        if (!askedForPersistence) {
+          askedForPersistence = true;
+          requestPersistentStorage();
+        }
+        return { accountId, ids: added.map((t) => t.id), createdAccount: typeof plan.account !== 'string', previousOpening, previous };
+      },
+      undoImport: (receipt) =>
+        set((s) => {
+          if (receipt.previous) return { ...receipt.previous };
+          const ids = new Set(receipt.ids);
+          const transactions = s.transactions.filter((t) => !ids.has(t.id));
+          const inUse = transactions.some((t) => t.account === receipt.accountId || t.toAccount === receipt.accountId);
+          const { previousOpening } = receipt;
+          let accounts = s.accounts;
+          if (receipt.createdAccount && !inUse) accounts = accounts.filter((a) => a.id !== receipt.accountId);
+          else if (previousOpening !== null)
+            accounts = accounts.map((a) => (a.id === receipt.accountId ? { ...a, balance: previousOpening } : a));
+          return { transactions, accounts };
+        }),
+
       replaceAll: (data, isSample = false) => set({ ...data, isSample }),
       startFresh: () => set({ ...emptyData(), isSample: false }),
       dismissSample: () => set({ isSample: false }),
@@ -205,15 +282,7 @@ export const useFinance = create<FinanceState>()(
         useBoot.setState(
           error ? { status: 'error', error: error instanceof Error ? error.message : String(error) } : { status: 'ready', error: null },
         ),
-      partialize: (s) => ({
-        transactions: s.transactions,
-        accounts: s.accounts,
-        categories: s.categories,
-        budgets: s.budgets,
-        goals: s.goals,
-        loans: s.loans,
-        isSample: s.isSample,
-      }),
+      partialize: (s) => ({ ...pickData(s), isSample: s.isSample }),
     },
   ),
 );
