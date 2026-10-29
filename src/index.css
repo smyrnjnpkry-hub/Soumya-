@@ -1,0 +1,236 @@
+@import 'tailwindcss';
+
+/* Dark mode follows the data-theme attribute set in index.html / useTheme. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * Semantic tokens. Components use these (bg-surface, text-ink, text-income …)
+ * instead of raw palette classes, so light/dark is decided in exactly one place.
+ *
+ * Chart + category colours come from the validated data-viz palette:
+ * 8 categorical hues, checked for colour-blind separation and contrast against
+ * these surfaces (#ffffff light, #151c2c dark). Dark mode uses its own steps.
+ */
+:root {
+  color-scheme: light;
+  --canvas: #f5f7fb;
+  --surface: #ffffff;
+  --subtle: #f1f4f9;
+  --line: #e5e9f0;
+  --ink: #0f172a;
+  --ink-2: #475569;
+  --muted: #5f6b7e;
+
+  /* --primary: accent text/icons · --primary-fill: filled buttons (white text ≥ 4.5:1) */
+  --primary: #2563eb;
+  --primary-fill: #2563eb;
+  --primary-fill-hover: #1d4ed8;
+  --primary-soft: #eef4ff;
+  --primary-ink: #1d4ed8;
+
+  /* text colours meet 4.5:1 on every light background (surface, canvas, subtle, soft tints); *-mark colours are for chart marks */
+  --income: #15803d;
+  --income-soft: #ecfdf3;
+  --income-mark: #008300;
+  --expense: #cc2222;
+  --expense-soft: #fef2f2;
+  --expense-mark: #e34948;
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --warning-mark: #fab219;
+  --critical-mark: #d03b3b;
+
+  --grid: #edf0f5;
+  --axis: #c5ccd8;
+  --de-emphasis: #a3adbd;
+
+  --cat-blue: #2a78d6;
+  --cat-orange: #eb6834;
+  --cat-aqua: #1baf7a;
+  --cat-yellow: #eda100;
+  --cat-magenta: #e87ba4;
+  --cat-green: #008300;
+  --cat-violet: #6250d6;
+  --cat-red: #e34948;
+  --cat-slate: #8b95a7;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 14px -4px rgb(15 23 42 / 0.08);
+  --shadow-pop: 0 18px 40px -12px rgb(15 23 42 / 0.28);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --canvas: #0b1020;
+  --surface: #151c2c;
+  --subtle: #1c2437;
+  --line: #273149;
+  --ink: #f1f5f9;
+  --ink-2: #cbd5e1;
+  --muted: #94a3b8;
+
+  --primary: #60a5fa;
+  --primary-fill: #2563eb;
+  --primary-fill-hover: #1d4ed8;
+  --primary-soft: rgb(59 130 246 / 0.16);
+  --primary-ink: #93c5fd;
+
+  --income: #4ade80;
+  --income-soft: rgb(34 197 94 / 0.14);
+  --income-mark: #008300;
+  --expense: #f87171;
+  --expense-soft: rgb(239 68 68 / 0.14);
+  --expense-mark: #e66767;
+  --warning: #fbbf24;
+  --warning-soft: rgb(245 158 11 / 0.14);
+  --warning-mark: #fab219;
+  --critical-mark: #e66767;
+
+  --grid: #222b3f;
+  --axis: #3a4560;
+  --de-emphasis: #56617a;
+
+  --cat-blue: #3987e5;
+  --cat-orange: #d95926;
+  --cat-aqua: #199e70;
+  --cat-yellow: #c98500;
+  --cat-magenta: #d55181;
+  --cat-green: #008300;
+  --cat-violet: #9085e9;
+  --cat-red: #e66767;
+  --cat-slate: #6b7590;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-pop: 0 18px 40px -12px rgb(0 0 0 / 0.6);
+}
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-fill: var(--primary-fill);
+  --color-primary-fill-hover: var(--primary-fill-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-ink: var(--primary-ink);
+  --color-income: var(--income);
+  --color-income-soft: var(--income-soft);
+  --color-expense: var(--expense);
+  --color-expense-soft: var(--expense-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-feature-settings: 'cv11';
+    min-height: 100dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Native date input icon follows the theme */
+  [data-theme='dark'] input::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+  }
+}
+
+/* @utility (not @layer components) so these accept variants, e.g. `lg:card` */
+@utility card {
+  @apply rounded-2xl border border-line bg-surface shadow-card;
+}
+
+@utility field {
+  @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-muted focus:border-primary focus:ring-4 focus:ring-primary/15;
+}
+
+@utility label {
+  @apply mb-1.5 block text-[13px] font-medium text-ink-2;
+}
+
+/* Native <dialog>: bottom sheet on phones, centred card on larger screens */
+dialog.sheet {
+  margin: auto auto 0;
+  max-height: 92dvh;
+  width: 100%;
+  max-width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+}
+
+@media (min-width: 640px) {
+  dialog.sheet {
+    margin: auto;
+    max-width: 32rem;
+  }
+}
+
+dialog.sheet::backdrop {
+  background: rgb(15 23 42 / 0.45);
+  backdrop-filter: blur(2px);
+}
+
+dialog.sheet[open] {
+  animation: sheet-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Hide scrollbars on horizontal chip rows while keeping them scrollable */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
