@@ -9,7 +9,7 @@ import { Chip } from '@/components/ui/Form';
 import { transactionsToCSV } from '@/lib/csv';
 import { addMonthsToKey, lastNMonths, monthBounds, monthKey, todayISO } from '@/lib/dates';
 import { downloadCSV } from '@/lib/download';
-import { categoryBreakdown, foldBreakdown, monthlySeries, periodTotals, weekdayAverages } from '@/lib/finance';
+import { categoryBreakdown, countedTransactions, foldBreakdown, monthlySeries, periodTotals, weekdayAverages } from '@/lib/finance';
 import { formatINR, formatPercent } from '@/lib/format';
 import { cn } from '@/lib/ui';
 import { useFinance, useLookups } from '@/store/finance';
@@ -55,13 +55,15 @@ export default function Reports() {
     // A single month gets six months of context in the trend charts
     const trendKeys = keys.length > 1 ? keys : lastNMonths(keys[0], 6);
     const inPeriod = transactions.filter((t) => t.date >= start && t.date <= end);
+    // Spending as income and spending see it, without money lent, borrowed or paid back
+    const counted = countedTransactions(inPeriod);
     // Weekday habits: leave out outsized one-off bills (rent, EMIs) that would swamp everyday spending
-    const amounts = inPeriod
+    const amounts = counted
       .filter((t) => t.type === 'expense')
       .map((t) => t.amount)
       .sort((a, b) => a - b);
     const billCap = (amounts[Math.floor(amounts.length / 2)] ?? 0) * 5;
-    const everyday = inPeriod.filter((t) => t.type !== 'expense' || t.amount < billCap);
+    const everyday = counted.filter((t) => t.type !== 'expense' || t.amount < billCap);
     return {
       totals: periodTotals(transactions, start, end),
       expenses: foldBreakdown(categoryBreakdown(transactions, { type: 'expense', start, end }), 6),
@@ -69,7 +71,7 @@ export default function Reports() {
       trend: monthlySeries(transactions, trendKeys),
       weekdays: weekdayAverages(everyday, start, end < today ? end : today),
       billCap,
-      largest: inPeriod
+      largest: counted
         .filter((t) => t.type === 'expense')
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 5),

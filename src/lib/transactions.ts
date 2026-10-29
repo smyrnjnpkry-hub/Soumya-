@@ -1,5 +1,6 @@
+import { countedAmount } from './finance';
 import { round2 } from './format';
-import type { Account, Category, Transaction, TransactionType } from './types';
+import type { Account, Category, LentBorrowed, Transaction, TransactionType } from './types';
 
 export interface TransactionFilters {
   query?: string;
@@ -14,6 +15,8 @@ export interface TransactionFilters {
 export interface Lookup {
   categories: Record<string, Category>;
   accounts: Record<string, Account>;
+  /** Transaction id → the person it belongs to in Lent & Borrowed */
+  lending?: Map<string, LentBorrowed>;
 }
 
 export function filterTransactions(transactions: Transaction[], filters: TransactionFilters, lookup: Lookup): Transaction[] {
@@ -59,8 +62,19 @@ export function groupByDay(transactions: Transaction[]): DayGroup[] {
       groups.push(group);
     }
     group.items.push(t);
-    if (t.type === 'income') group.income = round2(group.income + t.amount);
-    else if (t.type === 'expense') group.expense = round2(group.expense + t.amount);
+    if (t.type === 'income') group.income = round2(group.income + countedAmount(t));
+    else if (t.type === 'expense') group.expense = round2(group.expense + countedAmount(t));
   }
   return groups;
+}
+
+/** Income and spending in a list; transfers and money lent, borrowed or paid back don't count. */
+export function incomeAndSpending(transactions: Transaction[]): { income: number; expense: number } {
+  let income = 0;
+  let expense = 0;
+  for (const t of transactions) {
+    if (t.type === 'income') income += countedAmount(t);
+    else if (t.type === 'expense') expense += countedAmount(t);
+  }
+  return { income: round2(income), expense: round2(expense) };
 }

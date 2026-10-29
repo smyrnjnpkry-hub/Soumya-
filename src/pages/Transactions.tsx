@@ -9,7 +9,7 @@ import { Chip, Field, Input, Select } from '@/components/ui/Form';
 import { Modal } from '@/components/ui/Modal';
 import { addMonthsToKey, monthBounds, monthKey, todayISO } from '@/lib/dates';
 import { dayLabel, formatDate, formatINR } from '@/lib/format';
-import { filterTransactions, groupByDay, type TransactionFilters } from '@/lib/transactions';
+import { filterTransactions, groupByDay, incomeAndSpending, type TransactionFilters } from '@/lib/transactions';
 import type { TransactionType } from '@/lib/types';
 import { useFinance, useLookups } from '@/store/finance';
 
@@ -68,18 +68,7 @@ export default function Transactions() {
 
   const filtered = useMemo(() => filterTransactions(transactions, filters, lookup), [transactions, filters, lookup]);
   const groups = useMemo(() => groupByDay(filtered), [filtered]);
-  const totals = useMemo(
-    () =>
-      filtered.reduce(
-        (acc, t) => {
-          if (t.type === 'income') acc.income += t.amount;
-          else if (t.type === 'expense') acc.expense += t.amount;
-          return acc;
-        },
-        { income: 0, expense: 0 },
-      ),
-    [filtered],
-  );
+  const totals = useMemo(() => incomeAndSpending(filtered), [filtered]);
 
   // Render whole days until the row limit is reached
   const visible: typeof groups = [];

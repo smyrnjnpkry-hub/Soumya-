@@ -174,7 +174,7 @@ export default function Settings() {
             <Row
               icon={Database}
               title="Back up everything"
-              description="Transactions, accounts, categories, budgets, goals, loans and cards in one file. Keep it somewhere safe."
+              description="Transactions, accounts, categories, budgets, goals, loans, cards and money lent or borrowed in one file. Keep it somewhere safe."
               action={
                 <Button variant="secondary" size="sm" icon={Download} onClick={backup}>
                   Download backup
@@ -271,7 +271,7 @@ export default function Settings() {
             <Row
               icon={Trash2}
               title="Erase all data"
-              description="Deletes every transaction, budget, goal, loan and card on this device."
+              description="Deletes every transaction, budget, goal, loan, card and record of money lent or borrowed on this device."
               action={
                 <Button variant="danger" size="sm" onClick={() => setConfirm('erase')}>
                   Erase
@@ -320,7 +320,7 @@ export default function Settings() {
         open={confirm === 'erase'}
         onClose={() => setConfirm(null)}
         title="Erase all data?"
-        message={`This permanently deletes ${data.transactions.length} transactions and all budgets, goals, loans and cards from this device. Default categories and accounts are kept.`}
+        message={`This permanently deletes ${data.transactions.length} transactions and all budgets, goals, loans, cards and money lent or borrowed from this device. Default categories and accounts are kept.`}
         confirmLabel="Erase everything"
         danger
         onConfirm={() => {

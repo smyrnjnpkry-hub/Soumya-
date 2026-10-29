@@ -3,6 +3,8 @@ import {
   accountBalances,
   budgetProgress,
   categoryBreakdown,
+  countedAmount,
+  countedTransactions,
   dailyCumulative,
   foldBreakdown,
   monthlySeries,
@@ -158,5 +160,58 @@ describe('weekday averages', () => {
     expect(days[0]).toMatchObject({ total: 400, average: 200 });
     expect(days[5]).toMatchObject({ total: 1000, average: 500 });
     expect(days[6]).toMatchObject({ total: 0, average: 0 });
+  });
+});
+
+describe('money lent, borrowed or paid back (Lent & Borrowed)', () => {
+  // Salary; a ₹51,000 repayment that is ₹50,000 money back and ₹1,000 interest; ₹20,000 lent; ₹2,000 of groceries
+  const lending = [
+    tx('2026-10-01', 'income', 50000, 'salary'),
+    tx('2026-10-05', 'income', 51000, 'interest', 'bank', { principalPart: 50000 }),
+    tx('2026-10-06', 'expense', 20000, 'other-expense', 'bank', { principalPart: 20000 }),
+    tx('2026-10-06', 'expense', 2000, 'groceries'),
+  ];
+  const october = { start: '2026-10-01', end: '2026-10-31' };
+
+  it('counts only the part that isn’t money lent, borrowed or paid back, never below zero', () => {
+    expect(lending.map(countedAmount)).toEqual([50000, 1000, 0, 2000]);
+    expect(countedAmount(tx('2026-10-06', 'expense', 500, 'food', 'bank', { principalPart: 900 }))).toBe(0);
+  });
+
+  it('turns a list into what counts, dropping what counts for nothing and leaving transfers alone', () => {
+    const transfer = tx('2026-10-07', 'transfer', 3000, '', 'bank', { toAccount: 'cash' });
+    expect(countedTransactions([...lending, transfer]).map((t) => [t.type, t.amount, t.principalPart])).toEqual([
+      ['income', 50000, undefined],
+      ['income', 1000, undefined],
+      ['expense', 2000, undefined],
+      ['transfer', 3000, undefined],
+    ]);
+  });
+
+  it('leaves it out of income and spending totals', () => {
+    expect(monthTotals(lending, '2026-10')).toMatchObject({ income: 51000, expense: 2000 });
+  });
+
+  it('leaves it out of category breakdowns, and so out of budgets', () => {
+    const rows = (type: 'income' | 'expense') =>
+      categoryBreakdown(lending, { type, ...october }).map((i) => [i.categoryId, i.amount, i.count]);
+    expect(rows('expense')).toEqual([['groceries', 2000, 1]]);
+    expect(rows('income')).toEqual([
+      ['salary', 50000, 1],
+      ['interest', 1000, 1],
+    ]);
+    const { items } = budgetProgress([{ id: 'b', category: 'other-expense', month: '2026-10', limit: 5000 }], lending, '2026-10');
+    expect(items[0].spent).toBe(0);
+  });
+
+  it('leaves it out of monthly series, daily running totals and weekday averages', () => {
+    expect(monthlySeries(lending, ['2026-10'])).toEqual([{ key: '2026-10', income: 51000, expense: 2000, net: 49000 }]);
+    expect(dailyCumulative(lending, '2026-10')[5]).toEqual({ day: 6, total: 2000 });
+    expect(weekdayAverages(lending, '2026-10-05', '2026-10-11').find((d) => d.label === 'Tue')?.total).toBe(2000);
+  });
+
+  it('still moves the full amount in and out of account balances', () => {
+    // ₹10,000 opening + 50,000 + 51,000 − 20,000 − 2,000
+    expect(accountBalances(accounts, lending).bank).toBe(89000);
   });
 });

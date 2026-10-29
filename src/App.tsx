@@ -28,6 +28,7 @@ const router = createHashRouter([
       { path: 'categories', lazy: page(() => import('@/pages/Categories')) },
       { path: 'loans', lazy: page(() => import('@/pages/Loans')) },
       { path: 'credit-cards', lazy: page(() => import('@/pages/CreditCards')) },
+      { path: 'lent-borrowed', lazy: page(() => import('@/pages/LentBorrowed')) },
       { path: 'reports', lazy: page(() => import('@/pages/Reports')) },
       { path: 'insights', lazy: page(() => import('@/pages/Insights')) },
       { path: 'accounts', lazy: page(() => import('@/pages/Accounts')) },

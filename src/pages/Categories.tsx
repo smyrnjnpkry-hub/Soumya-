@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, PageHeader } from '@/components/ui/Card';
 import { Chip, Segmented } from '@/components/ui/Form';
 import { addMonthsToKey, lastNMonths, monthBounds, monthKey, todayISO } from '@/lib/dates';
-import { categoryBreakdown, type MonthPoint } from '@/lib/finance';
+import { categoryBreakdown, countedTransactions, type MonthPoint } from '@/lib/finance';
 import { formatDate, formatINR, formatPercent } from '@/lib/format';
 import type { CategoryType } from '@/lib/types';
 import { cn, colorVar } from '@/lib/ui';
@@ -48,15 +48,16 @@ export default function Categories() {
 
   const detail = useMemo(() => {
     if (!selected) return null;
+    const counted = countedTransactions(transactions);
     const keys = lastNMonths(monthKey(todayISO()), 6);
     const months: MonthPoint[] = keys.map((key) => {
       const { start, end } = monthBounds(key);
-      const amount = transactions
+      const amount = counted
         .filter((t) => t.type === type && t.category === selected.categoryId && t.date >= start && t.date <= end)
         .reduce((s, t) => s + t.amount, 0);
       return { key, income: type === 'income' ? amount : 0, expense: type === 'expense' ? amount : 0, net: 0 };
     });
-    const largest = transactions
+    const largest = counted
       .filter((t) => t.type === type && t.category === selected.categoryId && t.date >= period.start && t.date <= period.end)
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5);

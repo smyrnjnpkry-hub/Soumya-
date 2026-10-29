@@ -1,6 +1,7 @@
 import { addMonthsToDate, addMonthsToKey, daysInMonth, lastNMonths, monthKey } from './dates';
 import { DEFAULT_CATEGORIES } from './defaults';
-import type { Account, Budget, CreditCard, FinanceData, Goal, Loan, Transaction } from './types';
+import { interestDueDates } from './lending';
+import type { Account, Budget, CreditCard, FinanceData, Goal, LentBorrowed, LentBorrowedPayment, Loan, Transaction } from './types';
 
 const SAMPLE_PREFIX = 'sample-';
 
@@ -50,9 +51,22 @@ export function createSampleData(today: string): FinanceData {
     account: string,
     note: string,
     toAccount?: string,
-  ) => {
-    if (date > today) return;
-    transactions.push({ id: `${SAMPLE_PREFIX}${++seq}`, type, amount, date, category, account, note, ...(toAccount ? { toAccount } : {}) });
+    principalPart?: number,
+  ): string | undefined => {
+    if (date > today) return undefined;
+    const id = `${SAMPLE_PREFIX}${++seq}`;
+    transactions.push({
+      id,
+      type,
+      amount,
+      date,
+      category,
+      account,
+      note,
+      ...(toAccount ? { toAccount } : {}),
+      ...(principalPart ? { principalPart } : {}),
+    });
+    return id;
   };
 
   const currentKey = monthKey(today);
@@ -215,5 +229,73 @@ export function createSampleData(today: string): FinanceData {
     },
   ];
 
-  return { transactions, accounts, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })), budgets, goals, loans, creditCards };
+  // Lent & Borrowed (fixed amounts, after the random history so it stays the same): a cousin's monthly interest arrives in
+  // the bank, linked, except the latest; money borrowed from a sister came in and partly went back, neither income nor spending
+  const ramesh: LentBorrowed = {
+    id: 'lend-ramesh',
+    person: 'Ramesh (cousin)',
+    note: 'For his shop',
+    direction: 'lent',
+    principal: 50000,
+    interestType: 'monthly',
+    interestRate: 1.5,
+    startDate: `${addMonthsToKey(currentKey, -8)}-10`,
+    dueDay: 10,
+    remind: true,
+    payments: [],
+  };
+  ramesh.payments = interestDueDates(ramesh, today)
+    .slice(0, -1)
+    .map((date, i): LentBorrowedPayment => {
+      // Interest from before the sample's history has no bank transaction
+      const linked = date >= `${months[0]}-01` ? add(date, 'income', 750, 'interest', 'bank', 'UPI from Ramesh') : undefined;
+      return {
+        id: `lend-ramesh-${i + 1}`,
+        date,
+        type: 'interest',
+        interestPortion: 750,
+        principalPortion: 0,
+        ...(linked ? { linkedTransactionId: linked } : {}),
+      };
+    });
+
+  const borrowedOn = `${addMonthsToKey(currentKey, -3)}-28`;
+  const repaidOn = `${addMonthsToKey(currentKey, -1)}-28`;
+  const backBy = addMonthsToKey(currentKey, 1);
+  const borrowed = add(borrowedOn, 'income', 10000, 'other-income', 'bank', 'UPI from Priya', undefined, 10000);
+  const repaid = add(repaidOn, 'expense', 4000, 'other-expense', 'bank', 'UPI to Priya', undefined, 4000);
+  const priya: LentBorrowed = {
+    id: 'lend-priya',
+    person: 'Priya (sister)',
+    note: 'Flat deposit',
+    direction: 'borrowed',
+    principal: 10000,
+    interestType: 'none',
+    interestRate: 0,
+    startDate: borrowedOn,
+    dueDate: `${backBy}-${pad2(daysInMonth(backBy))}`,
+    remind: true,
+    ...(borrowed ? { startTransactionId: borrowed } : {}),
+    payments: [
+      {
+        id: 'lend-priya-1',
+        date: repaidOn,
+        type: 'principal',
+        interestPortion: 0,
+        principalPortion: 4000,
+        ...(repaid ? { linkedTransactionId: repaid } : {}),
+      },
+    ],
+  };
+
+  return {
+    transactions,
+    accounts,
+    categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
+    budgets,
+    goals,
+    loans,
+    creditCards,
+    lentBorrowed: [ramesh, priya],
+  };
 }

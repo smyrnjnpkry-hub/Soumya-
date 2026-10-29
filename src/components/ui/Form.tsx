@@ -110,6 +110,11 @@ export function Segmented<T extends string>({ value, onChange, options, label, c
   );
 }
 
+/** A bordered radio option that highlights when chosen: put a `choiceRadio` input and its text inside a label. */
+export const choiceRow =
+  'flex cursor-pointer items-start gap-3 rounded-xl border border-line p-3 transition has-[:checked]:border-primary has-[:checked]:bg-primary-soft/50';
+export const choiceRadio = 'mt-0.5 size-4 shrink-0 accent-[var(--primary-fill)]';
+
 /** Pill-shaped toggle chip used for quick filters and pickers. */
 export function Chip({ selected, className, children, ...props }: ComponentProps<'button'> & { selected?: boolean }) {
   return (

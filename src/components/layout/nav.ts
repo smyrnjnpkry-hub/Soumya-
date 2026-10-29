@@ -5,6 +5,7 @@ import {
   CreditCard,
   FileUp,
   Gauge,
+  HandCoins,
   Landmark,
   LayoutDashboard,
   Lightbulb,
@@ -38,6 +39,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: '/goals', label: 'Goals', icon: Target, description: 'Save towards what matters' },
       { to: '/loans', label: 'Loans & EMI', icon: Landmark, description: 'EMIs, interest and payoff' },
       { to: '/credit-cards', label: 'Credit Cards', icon: CreditCard, description: 'Limits, dues and card bills' },
+      { to: '/lent-borrowed', label: 'Lent & Borrowed', icon: HandCoins, description: 'Money you lent or borrowed' },
     ],
   },
   {

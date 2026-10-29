@@ -25,6 +25,26 @@ const data: FinanceData = {
       note: 'Card bill',
       creditCardId: null,
     },
+    {
+      id: 't4',
+      type: 'income',
+      amount: 5200,
+      date: '2026-10-12',
+      category: 'food',
+      account: 'cash',
+      note: 'UPI from Ramesh',
+      principalPart: 5000,
+    },
+    {
+      id: 't5',
+      type: 'expense',
+      amount: 20000,
+      date: '2026-08-02',
+      category: 'food',
+      account: 'cash',
+      note: 'Lent to Ramesh',
+      principalPart: 20000,
+    },
   ],
   accounts: [{ id: 'cash', name: 'Cash', type: 'cash', balance: 1000 }],
   categories: [{ id: 'food', name: 'Food', icon: 'utensils', color: 'orange', type: 'expense' }],
@@ -44,6 +64,49 @@ const data: FinanceData = {
     },
     { id: 'c2', name: 'Store card', limit: 20000, outstanding: 0, minDue: 0, dueDate: '2026-11-18', interestRate: 36 },
   ],
+  lentBorrowed: [
+    {
+      id: 'lb1',
+      person: 'Ramesh',
+      phone: '98765 43210',
+      note: 'Shop',
+      direction: 'lent',
+      principal: 20000,
+      interestType: 'monthly',
+      interestRate: 2,
+      startDate: '2026-08-01',
+      dueDay: 10,
+      dueDate: '2027-02-01',
+      remind: true,
+      startTransactionId: 't5',
+      addedStartTransaction: true,
+      payments: [
+        { id: 'p1', date: '2026-10-12', type: 'mixed', interestPortion: 200, principalPortion: 5000, linkedTransactionId: 't4' },
+        { id: 'p2', date: '2026-10-20', type: 'correction', interestPortion: 0, principalPortion: -1000, note: 'Lent ₹1,000 more' },
+        {
+          id: 'p3',
+          date: '2026-10-29',
+          type: 'settlement',
+          interestPortion: 100,
+          principalPortion: 16000,
+          waived: 50,
+          addedTransaction: true,
+          linkedTransactionId: 'gone',
+        },
+      ],
+    },
+    {
+      id: 'lb2',
+      person: 'Priya',
+      direction: 'borrowed',
+      principal: 10000,
+      interestType: 'none',
+      interestRate: 0,
+      startDate: '2026-07-28',
+      remind: false,
+      payments: [],
+    },
+  ],
 };
 
 describe('backup round trip', () => {
@@ -56,7 +119,7 @@ describe('backup round trip', () => {
     const minimal = JSON.stringify({ app: 'fintrack', version: 1, data: { transactions: [], accounts: [], categories: [] } });
     expect(parseBackup(minimal)).toEqual({
       ok: true,
-      data: { transactions: [], accounts: [], categories: [], budgets: [], goals: [], loans: [], creditCards: [] },
+      data: { transactions: [], accounts: [], categories: [], budgets: [], goals: [], loans: [], creditCards: [], lentBorrowed: [] },
     });
   });
 });
@@ -89,6 +152,38 @@ describe('parseBackup rejects files it cannot trust', () => {
     const result = parseBackup(JSON.stringify(bad));
     expect(result.ok).toBe(false);
     expect(!result.ok && result.error).toMatch(/card/i);
+  });
+
+  it.each([
+    ['a direction that isn’t lent or borrowed', { direction: 'given' }],
+    ['an amount that is not a number', { principal: '20000' }],
+    ['an unknown kind of interest', { interestType: 'weekly' }],
+    ['a due day past 31', { dueDay: 32 }],
+    ['a history that isn’t a list', { payments: {} }],
+    [
+      'a payment of an unknown type',
+      { payments: [{ id: 'p', date: '2026-10-12', type: 'gift', interestPortion: 0, principalPortion: 5 }] },
+    ],
+    [
+      'a payment without a proper date',
+      { payments: [{ id: 'p', date: '12/10/2026', type: 'interest', interestPortion: 5, principalPortion: 0 }] },
+    ],
+  ])('rejects someone lent to or borrowed from with %s, naming the problem', (_, change) => {
+    const bad = JSON.parse(createBackup(data, '2026-10-28T10:00:00.000Z'));
+    Object.assign(bad.data.lentBorrowed[0], change);
+    const result = parseBackup(JSON.stringify(bad));
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error).toMatch(/lent|borrowed/i);
+  });
+
+  it.each([
+    ['negative', -1],
+    ['more than the amount', 5201],
+    ['not a number', '5000'],
+  ])('rejects a money-back part that is %s', (_, principalPart) => {
+    const bad = JSON.parse(createBackup(data, '2026-10-28T10:00:00.000Z'));
+    bad.data.transactions[3].principalPart = principalPart;
+    expect(parseBackup(JSON.stringify(bad)).ok).toBe(false);
   });
 
   it('rejects a card link that is not a card id or null', () => {

@@ -11,8 +11,17 @@ import {
   samePeriodLastMonth,
 } from './dates';
 import { cardsOverview, cardSummary, USAGE_WARNING } from './cards';
-import { budgetProgress, categoryBreakdown, monthlySeries, periodTotals, totalBalance, type MonthPoint } from './finance';
+import {
+  budgetProgress,
+  categoryBreakdown,
+  countedTransactions,
+  monthlySeries,
+  periodTotals,
+  totalBalance,
+  type MonthPoint,
+} from './finance';
 import { formatDate, formatINR, formatMonth, formatPercent, round2 } from './format';
+import { entrySummary } from './lending';
 import { loanSummary } from './loans';
 import type { FinanceData, Transaction } from './types';
 
@@ -24,7 +33,8 @@ import type { FinanceData, Transaction } from './types';
  */
 
 export type InsightTone = 'positive' | 'negative' | 'warning' | 'neutral';
-export type InsightKind = 'spending' | 'category' | 'alert' | 'savings' | 'cashflow' | 'budget' | 'goal' | 'loan' | 'card' | 'habit';
+export type InsightKind =
+  'spending' | 'category' | 'alert' | 'savings' | 'cashflow' | 'budget' | 'goal' | 'loan' | 'card' | 'lending' | 'habit';
 
 export interface Insight {
   /** Stable id, e.g. 'category-up:food' */
@@ -126,6 +136,7 @@ const TONE_ORDER: Record<InsightTone, number> = { negative: 0, warning: 1, posit
 const rupees = (n: number) => formatINR(Math.round(n));
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 const dueIn = (days: number) => (days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`);
+const daysAgo = (days: number) => (days === 1 ? 'yesterday' : `${days} days ago`);
 
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 
@@ -149,7 +160,9 @@ function projectSpending(current: number, previous: number, lastMonthTotal: numb
 }
 
 export function buildInsights(data: FinanceData, today: string): InsightsReport {
-  const { transactions, categories, accounts, budgets, goals, loans, creditCards } = data;
+  const { categories, accounts, budgets, goals, loans, creditCards } = data;
+  // Money lent, borrowed or paid back is neither income nor spending; the balance below still counts every rupee
+  const transactions = countedTransactions(data.transactions);
   const names = new Map(categories.map((c) => [c.id, c.name]));
   const nameOf = (id: string) => names.get(id) ?? 'Uncategorized';
 
@@ -216,7 +229,7 @@ export function buildInsights(data: FinanceData, today: string): InsightsReport 
   const recent = completed.slice(-3);
   const recentWithExpense = recent.filter((m) => m.expense > 0);
   const avgMonthlyExpense = recentWithExpense.length ? mean(recentWithExpense.map((m) => m.expense)) : projected > 0 ? projected : null;
-  const balance = totalBalance(accounts, transactions);
+  const balance = totalBalance(accounts, data.transactions);
   const runwayMonths = avgMonthlyExpense ? Math.max(balance, 0) / avgMonthlyExpense : null;
 
   const recentActive = recent.filter((m) => m.income > 0 || m.expense > 0);
@@ -613,6 +626,38 @@ export function buildInsights(data: FinanceData, today: string): InsightsReport 
       tone: 'warning',
       title: `Your cards are ${formatPercent(cards.usage)} used`,
       detail: `${rupees(cards.owed)} of ${rupees(cards.limit)} in limits. Keeping it under 30% helps your credit score.`,
+    });
+  }
+
+  // Lent & Borrowed: what's overdue or due within a week, for people with reminders on
+  const lendingDue = data.lentBorrowed
+    .map((entry) => ({ entry, due: entrySummary(entry, today) }))
+    .filter(({ due }) => due.dueSoon)
+    .map(({ entry, due }) => ({ entry, due: due.due! }))
+    .sort((a, b) => a.due.days - b.due.days);
+  const overdueLending = lendingDue.filter(({ due }) => due.days < 0).slice(0, RULES.maxPerRule);
+  const soonLending = lendingDue.filter(({ due }) => due.days >= 0).slice(0, RULES.maxPerRule);
+  for (const { entry, due } of [...overdueLending, ...soonLending]) {
+    const late = due.days < 0;
+    const amount = rupees(due.amount);
+    const lent = entry.direction === 'lent';
+    let title: string;
+    if (due.kind === 'interest') {
+      if (late) title = lent ? `${amount} interest pending from ${entry.person}` : `Your ${amount} interest to ${entry.person} is overdue`;
+      else
+        title = lent
+          ? `${amount} interest from ${entry.person} due ${dueIn(due.days)}`
+          : `Your ${amount} interest to ${entry.person} is due ${dueIn(due.days)}`;
+    } else {
+      const who = lent ? `${amount} from ${entry.person}` : `${amount} to ${entry.person}`;
+      title = late ? `${who} was due back ${daysAgo(-due.days)}` : `${who} due back ${dueIn(due.days)}`;
+    }
+    add({
+      id: `lending-${late ? 'overdue' : 'due'}:${entry.id}`,
+      kind: 'lending',
+      tone: late ? 'negative' : 'warning',
+      title,
+      detail: late ? `Due since ${formatDate(due.date)}. Record it in Lent & Borrowed once it’s paid.` : `Due on ${formatDate(due.date)}.`,
     });
   }
 
