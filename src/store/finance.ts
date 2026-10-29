@@ -3,11 +3,12 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { todayISO } from '@/lib/dates';
 import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES } from '@/lib/defaults';
+import { round2 } from '@/lib/format';
 import { createId } from '@/lib/id';
 import { advanceLoan } from '@/lib/loans';
 import { createSampleData } from '@/lib/seed';
 import { STATEMENT_ACCOUNT } from '@/lib/statement/types';
-import type { Account, Budget, Category, FinanceData, Goal, Loan, Transaction } from '@/lib/types';
+import type { Account, Budget, Category, CreditCard, FinanceData, Goal, Loan, Transaction } from '@/lib/types';
 import { deviceStorage, requestPersistentStorage } from './storage';
 
 type Draft<T> = Omit<T, 'id'>;
@@ -49,6 +50,19 @@ export interface FinanceState extends FinanceData {
   /** Marks the next EMI paid; with an account it is also recorded as an expense */
   payEmi: (id: string, record?: { accountId: string; date: string }) => void;
 
+  addCreditCard: (c: Draft<CreditCard>) => string;
+  updateCreditCard: (id: string, c: Draft<CreditCard>) => void;
+  /** Also unlinks its transactions, which stay in your list */
+  deleteCreditCard: (id: string) => void;
+  /**
+   * Links a transaction to a card, marks it "not a card payment" (null), or hands it back to automatic matching
+   * (undefined). Returns the previous link, for Undo.
+   */
+  linkCardTransaction: (transactionId: string, cardId: string | null | undefined) => CardLink;
+  /** Lowers what's owed and the minimum due (never below 0); returns what undoCardPayment needs, or null if refused */
+  payCreditCard: (id: string, payment: CardPayment) => CardPaymentReceipt | null;
+  undoCardPayment: (receipt: CardPaymentReceipt) => void;
+
   /** Adds a statement's rows in one step, optionally creating their account; returns what undoImport needs */
   importStatement: (plan: ImportPlan) => ImportReceipt;
   undoImport: (receipt: ImportReceipt) => void;
@@ -56,6 +70,27 @@ export interface FinanceState extends FinanceData {
   replaceAll: (data: FinanceData, isSample?: boolean) => void;
   startFresh: () => void;
   dismissSample: () => void;
+}
+
+/** A transaction's card link: a card id, null ("not a card payment") or undefined (automatic matching decides). */
+export type CardLink = Transaction['creditCardId'];
+
+export interface CardPayment {
+  amount: number;
+  date: string;
+  /** A transaction that already is this payment: it gets linked and nothing is added */
+  transactionId?: string;
+  /** Otherwise, the account to add the payment from as a new expense. With neither, only the card's numbers change. */
+  accountId?: string;
+}
+
+export interface CardPaymentReceipt {
+  cardId: string;
+  previous: Pick<CreditCard, 'outstanding' | 'minDue'>;
+  /** The expense added for the payment */
+  addedId: string | null;
+  /** The transaction linked as the payment, with the link it had before */
+  linked: { transactionId: string; previous: CardLink } | null;
 }
 
 export interface ImportPlan {
@@ -84,6 +119,7 @@ const emptyData = (): FinanceData => ({
   budgets: [],
   goals: [],
   loans: [],
+  creditCards: [],
 });
 
 const pickData = (s: FinanceData): FinanceData => ({
@@ -93,10 +129,20 @@ const pickData = (s: FinanceData): FinanceData => ({
   budgets: s.budgets,
   goals: s.goals,
   loans: s.loans,
+  creditCards: s.creditCards,
 });
 
 const replaceById = <T extends { id: string }>(items: T[], id: string, next: Omit<T, 'id'>): T[] =>
   items.map((item) => (item.id === id ? ({ ...next, id } as T) : item));
+
+/** undefined removes the link, so automatic matching decides again. */
+const withCardLink = (t: Transaction, link: CardLink): Transaction => {
+  const { creditCardId: _previous, ...rest } = t;
+  return link === undefined ? rest : { ...rest, creditCardId: link };
+};
+
+const setCardLink = (transactions: Transaction[], id: string, link: CardLink) =>
+  transactions.map((t) => (t.id === id ? withCardLink(t, link) : t));
 
 let askedForPersistence = false;
 
@@ -126,7 +172,13 @@ export const useFinance = create<FinanceState>()(
         }
         return id;
       },
-      updateTransaction: (id, t) => set((s) => ({ transactions: replaceById(s.transactions, id, t) })),
+      // The edit form doesn't know about card links, so an existing link is kept
+      updateTransaction: (id, t) =>
+        set((s) => ({
+          transactions: s.transactions.map((old) =>
+            old.id === id ? { ...('creditCardId' in old ? { creditCardId: old.creditCardId } : {}), ...t, id } : old,
+          ),
+        })),
       deleteTransaction: (id) => {
         const removed = get().transactions.find((t) => t.id === id);
         set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) }));
@@ -226,6 +278,80 @@ export const useFinance = create<FinanceState>()(
           return { loans, transactions: [expense, ...s.transactions] };
         }),
 
+      addCreditCard: (c) => {
+        const id = createId();
+        set((s) => ({ creditCards: [...s.creditCards, { ...c, id }] }));
+        return id;
+      },
+      updateCreditCard: (id, c) => set((s) => ({ creditCards: replaceById(s.creditCards, id, c) })),
+      deleteCreditCard: (id) =>
+        set((s) => ({
+          creditCards: s.creditCards.filter((c) => c.id !== id),
+          transactions: s.transactions.map((t) => (t.creditCardId === id ? withCardLink(t, undefined) : t)),
+        })),
+      linkCardTransaction: (transactionId, cardId) => {
+        const previous = get().transactions.find((t) => t.id === transactionId)?.creditCardId;
+        set((s) => ({ transactions: setCardLink(s.transactions, transactionId, cardId) }));
+        return previous;
+      },
+      payCreditCard: (id, payment) => {
+        const s = get();
+        const card = s.creditCards.find((c) => c.id === id);
+        if (!card || !(payment.amount > 0)) return null;
+        const creditCards = s.creditCards.map((c) =>
+          c.id === id
+            ? {
+                ...c,
+                outstanding: round2(Math.max(c.outstanding - payment.amount, 0)),
+                minDue: round2(Math.max(c.minDue - payment.amount, 0)),
+              }
+            : c,
+        );
+        const receipt: CardPaymentReceipt = {
+          cardId: id,
+          previous: { outstanding: card.outstanding, minDue: card.minDue },
+          addedId: null,
+          linked: null,
+        };
+        let { transactions } = s;
+        const existing = payment.transactionId ? transactions.find((t) => t.id === payment.transactionId) : undefined;
+        if (existing) {
+          receipt.linked = { transactionId: existing.id, previous: existing.creditCardId };
+          transactions = setCardLink(transactions, existing.id, id);
+        } else if (payment.accountId) {
+          const category =
+            s.categories.find((c) => c.id === 'bills') ??
+            s.categories.find((c) => c.type === 'expense' && /bill|utilit/i.test(c.name)) ??
+            s.categories.find((c) => c.id === 'other-expense') ??
+            s.categories.find((c) => c.type === 'expense');
+          const expense: Transaction = {
+            id: createId(),
+            type: 'expense',
+            amount: payment.amount,
+            date: payment.date,
+            category: category?.id ?? '',
+            account: payment.accountId,
+            note: `${card.name} bill`,
+            creditCardId: id,
+          };
+          receipt.addedId = expense.id;
+          transactions = [expense, ...transactions];
+        }
+        set({ creditCards, transactions });
+        return receipt;
+      },
+      undoCardPayment: (receipt) =>
+        set((s) => {
+          const { linked, addedId, previous } = receipt;
+          let { transactions } = s;
+          if (addedId) transactions = transactions.filter((t) => t.id !== addedId);
+          if (linked) transactions = setCardLink(transactions, linked.transactionId, linked.previous);
+          return {
+            transactions,
+            creditCards: s.creditCards.map((c) => (c.id === receipt.cardId ? { ...c, ...previous } : c)),
+          };
+        }),
+
       importStatement: (plan) => {
         const current = get();
         const previous = plan.fresh ? { ...pickData(current), isSample: current.isSample } : null;
@@ -276,8 +402,17 @@ export const useFinance = create<FinanceState>()(
     }),
     {
       name: STORAGE_KEY,
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => deviceStorage),
+      // Version 2 added credit cards: the sample gets its cards, your own data starts with none
+      migrate: (persisted, version) => {
+        const saved = persisted as Partial<FinanceState>;
+        if (version < 2) return { ...saved, creditCards: saved.isSample ? createSampleData(todayISO()).creditCards : [] };
+        return saved;
+      },
+      // A missing card list must never be filled from the initial state: those are the sample's cards, not yours
+      merge: (persisted, current) =>
+        persisted ? { ...current, ...persisted, creditCards: (persisted as Partial<FinanceState>).creditCards ?? [] } : current,
       onRehydrateStorage: () => (_state, error) =>
         useBoot.setState(
           error ? { status: 'error', error: error instanceof Error ? error.message : String(error) } : { status: 'ready', error: null },
@@ -308,8 +443,9 @@ export function useFinanceData(): FinanceData {
   const budgets = useFinance((s) => s.budgets);
   const goals = useFinance((s) => s.goals);
   const loans = useFinance((s) => s.loans);
+  const creditCards = useFinance((s) => s.creditCards);
   return useMemo(
-    () => ({ transactions, accounts, categories, budgets, goals, loans }),
-    [transactions, accounts, categories, budgets, goals, loans],
+    () => ({ transactions, accounts, categories, budgets, goals, loans, creditCards }),
+    [transactions, accounts, categories, budgets, goals, loans, creditCards],
   );
 }

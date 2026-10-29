@@ -1,4 +1,4 @@
-import type { Account, Budget, Category, ColorKey, FinanceData, Goal, Loan, Transaction } from './types';
+import type { Account, Budget, Category, ColorKey, CreditCard, FinanceData, Goal, Loan, Transaction } from './types';
 
 /**
  * JSON backup / restore. Data never leaves the device, so this file is the
@@ -13,11 +13,13 @@ type Raw = Record<string, unknown>;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MONTH = /^\d{4}-\d{2}$/;
+const LAST4 = /^\d{4}$/;
 const COLORS: ColorKey[] = ['blue', 'orange', 'aqua', 'yellow', 'magenta', 'green', 'violet', 'red', 'slate'];
 
 const str = (v: unknown): v is string => typeof v === 'string';
 const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const date = (v: unknown): v is string => str(v) && ISO_DATE.test(v);
+const atLeast0 = (v: unknown): v is number => num(v) && v >= 0;
 const oneOf = <T extends string>(v: unknown, options: readonly T[]): v is T => options.includes(v as T);
 
 const parsers: { [K in keyof FinanceData]: (r: Raw) => FinanceData[K][number] | null } = {
@@ -30,6 +32,7 @@ const parsers: { [K in keyof FinanceData]: (r: Raw) => FinanceData[K][number] | 
     str(r.category) &&
     str(r.account) &&
     (r.toAccount === undefined || str(r.toAccount)) &&
+    (r.creditCardId === undefined || r.creditCardId === null || str(r.creditCardId)) &&
     str(r.note)
       ? {
           id: r.id,
@@ -40,6 +43,7 @@ const parsers: { [K in keyof FinanceData]: (r: Raw) => FinanceData[K][number] | 
           account: r.account,
           note: r.note,
           ...(str(r.toAccount) ? { toAccount: r.toAccount } : {}),
+          ...(r.creditCardId === null || str(r.creditCardId) ? { creditCardId: r.creditCardId } : {}),
         }
       : null,
   accounts: (r): Account | null =>
@@ -70,6 +74,26 @@ const parsers: { [K in keyof FinanceData]: (r: Raw) => FinanceData[K][number] | 
           nextDue: r.nextDue,
         }
       : null,
+  creditCards: (r): CreditCard | null =>
+    str(r.id) &&
+    str(r.name) &&
+    atLeast0(r.limit) &&
+    atLeast0(r.outstanding) &&
+    atLeast0(r.minDue) &&
+    date(r.dueDate) &&
+    atLeast0(r.interestRate) &&
+    (r.last4 === undefined || (str(r.last4) && LAST4.test(r.last4)))
+      ? {
+          id: r.id,
+          name: r.name,
+          limit: r.limit,
+          outstanding: r.outstanding,
+          minDue: r.minDue,
+          dueDate: r.dueDate,
+          interestRate: r.interestRate,
+          ...(str(r.last4) ? { last4: r.last4 } : {}),
+        }
+      : null,
 };
 
 const LABELS: Record<keyof FinanceData, string> = {
@@ -79,6 +103,7 @@ const LABELS: Record<keyof FinanceData, string> = {
   budgets: 'Budget',
   goals: 'Goal',
   loans: 'Loan',
+  creditCards: 'Credit card',
 };
 
 export function createBackup(data: FinanceData, exportedAt: string): string {

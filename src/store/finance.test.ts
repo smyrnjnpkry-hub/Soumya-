@@ -1,8 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { accountBalances } from '@/lib/finance';
-import type { FinanceData } from '@/lib/types';
+import type { CreditCard, FinanceData } from '@/lib/types';
 import { STATEMENT_ACCOUNT } from '@/lib/statement/types';
 import { useFinance } from './finance';
+
+const hdfc: CreditCard = {
+  id: 'c1',
+  name: 'HDFC Millennia',
+  limit: 150000,
+  outstanding: 23480,
+  minDue: 1180,
+  dueDate: '2026-11-03',
+  interestRate: 42,
+  last4: '4417',
+};
 
 const fixture = (): FinanceData => ({
   transactions: [
@@ -19,6 +30,7 @@ const fixture = (): FinanceData => ({
     { id: 'snacks', name: 'Snacks', icon: 'coffee', color: 'orange', type: 'expense' },
     { id: 'other-expense', name: 'Other', icon: 'tag', color: 'slate', type: 'expense' },
     { id: 'emi', name: 'EMI & Loans', icon: 'landmark', color: 'red', type: 'expense' },
+    { id: 'bills', name: 'Bills & Utilities', icon: 'zap', color: 'yellow', type: 'expense' },
     { id: 'salary', name: 'Salary', icon: 'briefcase', color: 'green', type: 'income' },
   ],
   budgets: [
@@ -28,6 +40,7 @@ const fixture = (): FinanceData => ({
   ],
   goals: [{ id: 'g1', name: 'Bike', target: 90000, current: 1000, deadline: '2027-06-01' }],
   loans: [{ id: 'l1', name: 'Phone', principal: 30000, emi: 2700, interestRate: 14, remainingTenure: 10, nextDue: '2026-11-05' }],
+  creditCards: [hdfc],
 });
 
 const state = () => useFinance.getState();
@@ -113,7 +126,7 @@ describe('goals and transactions', () => {
   it('starts fresh with default categories and accounts and no sample flag', () => {
     state().startFresh();
     const s = state();
-    expect([s.transactions, s.budgets, s.goals, s.loans]).toEqual([[], [], [], []]);
+    expect([s.transactions, s.budgets, s.goals, s.loans, s.creditCards]).toEqual([[], [], [], [], []]);
     expect(s.categories.some((c) => c.id === 'salary')).toBe(true);
     expect(s.accounts.map((a) => a.type).sort()).toEqual(['bank', 'cash', 'upi']);
     expect(s.isSample).toBe(false);
@@ -178,9 +191,132 @@ describe('statement import', () => {
     expect(state().isSample).toBe(false);
     expect(state().transactions.map((t) => t.note)).toEqual(['Zomato', 'ATM withdrawal', 'Acme Labs']);
     expect(state().goals).toEqual([]);
+    expect(state().creditCards).toEqual([]);
     state().undoImport(receipt);
     expect(state().isSample).toBe(true);
     expect(state().transactions.map((t) => t.id)).toEqual(['t1', 't2', 't3']);
     expect(state().goals).toHaveLength(1);
+    expect(state().creditCards).toEqual([hdfc]);
+  });
+});
+
+describe('credit cards', () => {
+  const bill = {
+    id: 't4',
+    type: 'expense' as const,
+    amount: 23480,
+    date: '2026-10-28',
+    category: 'bills',
+    account: 'bank',
+    note: 'NEFT to card',
+  };
+  const card = () => state().creditCards.find((c) => c.id === 'c1');
+  const txn = (id: string) => state().transactions.find((t) => t.id === id);
+  const balances = () => accountBalances(state().accounts, state().transactions);
+
+  beforeEach(() => state().replaceAll({ ...fixture(), transactions: [...fixture().transactions, bill] }));
+
+  it('adds and updates a card', () => {
+    const sbi = { name: 'SBI SimplyCLICK', limit: 80000, outstanding: 6240, minDue: 320, dueDate: '2026-11-18', interestRate: 42 };
+    const id = state().addCreditCard(sbi);
+    state().updateCreditCard(id, { ...sbi, limit: 90000, last4: '9023' });
+    expect(state().creditCards.map((c) => [c.id, c.name, c.limit, c.last4])).toEqual([
+      ['c1', 'HDFC Millennia', 150000, '4417'],
+      [id, 'SBI SimplyCLICK', 90000, '9023'],
+    ]);
+  });
+
+  it('deleting a card unlinks its transactions but keeps them', () => {
+    state().linkCardTransaction('t4', 'c1');
+    state().linkCardTransaction('t1', null);
+    state().deleteCreditCard('c1');
+    expect(state().creditCards).toEqual([]);
+    expect(txn('t4')).toEqual(bill);
+    expect(txn('t1')?.creditCardId).toBeNull();
+  });
+
+  it('links a transaction, marks it not a card payment, or hands it back to automatic matching — returning the previous link', () => {
+    expect(state().linkCardTransaction('t4', 'c1')).toBeUndefined();
+    expect(txn('t4')?.creditCardId).toBe('c1');
+    expect(state().linkCardTransaction('t4', null)).toBe('c1');
+    expect(txn('t4')?.creditCardId).toBeNull();
+    expect(state().linkCardTransaction('t4', undefined)).toBeNull();
+    expect(txn('t4')).toEqual(bill);
+  });
+
+  it('records a payment that is already in your transactions by linking it: nothing is added and balances stay the same', () => {
+    const before = balances();
+    state().payCreditCard('c1', { amount: 23480, date: '2026-10-28', transactionId: 't4' });
+    expect(card()).toMatchObject({ outstanding: 0, minDue: 0 });
+    expect(state().transactions).toHaveLength(4);
+    expect(txn('t4')?.creditCardId).toBe('c1');
+    expect(balances()).toEqual(before);
+  });
+
+  it('can record a payment as one new expense from an account, linked to the card', () => {
+    state().payCreditCard('c1', { amount: 5000, date: '2026-10-29', accountId: 'bank' });
+    expect(state().transactions).toHaveLength(5);
+    expect(state().transactions[0]).toMatchObject({
+      type: 'expense',
+      amount: 5000,
+      date: '2026-10-29',
+      category: 'bills',
+      account: 'bank',
+      note: 'HDFC Millennia bill',
+      creditCardId: 'c1',
+    });
+    // 23,480 − 5,000, and the 1,180 minimum is covered
+    expect(card()).toMatchObject({ outstanding: 18480, minDue: 0 });
+  });
+
+  it('lowers the minimum due by a part payment, and never takes anything below zero', () => {
+    state().payCreditCard('c1', { amount: 1000, date: '2026-10-29' });
+    expect(card()).toMatchObject({ outstanding: 22480, minDue: 180 });
+    state().payCreditCard('c1', { amount: 30000, date: '2026-10-30' });
+    expect(card()).toMatchObject({ outstanding: 0, minDue: 0 });
+    expect(state().transactions).toHaveLength(4);
+  });
+
+  it('files a new payment under Other once Bills & Utilities is deleted', () => {
+    state().deleteCategory('bills');
+    state().payCreditCard('c1', { amount: 5000, date: '2026-10-29', accountId: 'bank' });
+    expect(state().transactions[0].category).toBe('other-expense');
+  });
+
+  it('undo puts the card’s numbers back and removes the added expense', () => {
+    const receipt = state().payCreditCard('c1', { amount: 5000, date: '2026-10-29', accountId: 'bank' });
+    state().undoCardPayment(receipt!);
+    expect(card()).toEqual(hdfc);
+    expect(state().transactions.map((t) => t.id)).toEqual(['t1', 't2', 't3', 't4']);
+  });
+
+  it('undo of a linked payment restores the previous link', () => {
+    state().linkCardTransaction('t4', null);
+    const receipt = state().payCreditCard('c1', { amount: 23480, date: '2026-10-28', transactionId: 't4' });
+    state().undoCardPayment(receipt!);
+    expect(card()).toEqual(hdfc);
+    expect(txn('t4')?.creditCardId).toBeNull();
+  });
+
+  it('refuses a payment of nothing or to a card that doesn’t exist', () => {
+    expect(state().payCreditCard('gone', { amount: 100, date: '2026-10-29', accountId: 'bank' })).toBeNull();
+    expect(state().payCreditCard('c1', { amount: 0, date: '2026-10-29', accountId: 'bank' })).toBeNull();
+    expect(card()).toEqual(hdfc);
+    expect(state().transactions).toHaveLength(4);
+  });
+
+  it('keeps a transaction’s card link when it is edited', () => {
+    state().linkCardTransaction('t4', 'c1');
+    // What the edit form sends: every field but the id and the link
+    const draft = {
+      type: 'expense' as const,
+      amount: 23480,
+      date: '2026-10-28',
+      category: 'bills',
+      account: 'bank',
+      note: 'HDFC card payment',
+    };
+    state().updateTransaction('t4', draft);
+    expect(txn('t4')).toMatchObject({ note: 'HDFC card payment', creditCardId: 'c1' });
   });
 });

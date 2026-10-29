@@ -21,6 +21,11 @@ export interface Transaction {
   /** Transfers only: the account money arrives in. */
   toAccount?: string;
   note: string;
+  /**
+   * Credit card link: a card id (linked by hand or by recording a payment), null ("not a card payment" — automatic
+   * matching leaves it alone), or missing (automatic matching decides).
+   */
+  creditCardId?: string | null;
 }
 
 export interface Account {
@@ -72,6 +77,23 @@ export interface Loan {
   nextDue: string;
 }
 
+export interface CreditCard {
+  id: string;
+  name: string;
+  /** Credit limit. */
+  limit: number;
+  /** Amount owed now. You keep it up to date; recording a payment lowers it. */
+  outstanding: number;
+  /** Minimum due on the current statement; 0 once paid. */
+  minDue: number;
+  /** 'YYYY-MM-DD' */
+  dueDate: string;
+  /** Annual interest rate in percent, e.g. 42 (cards often quote it monthly: 3.5% a month). */
+  interestRate: number;
+  /** Last four digits of the card number. */
+  last4?: string;
+}
+
 export interface FinanceData {
   transactions: Transaction[];
   accounts: Account[];
@@ -79,4 +101,5 @@ export interface FinanceData {
   budgets: Budget[];
   goals: Goal[];
   loans: Loan[];
+  creditCards: CreditCard[];
 }

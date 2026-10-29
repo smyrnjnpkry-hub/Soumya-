@@ -10,6 +10,7 @@ import {
   parseLocal,
   samePeriodLastMonth,
 } from './dates';
+import { cardsOverview, cardSummary, USAGE_WARNING } from './cards';
 import { budgetProgress, categoryBreakdown, monthlySeries, periodTotals, totalBalance, type MonthPoint } from './finance';
 import { formatDate, formatINR, formatMonth, formatPercent, round2 } from './format';
 import { loanSummary } from './loans';
@@ -23,7 +24,7 @@ import type { FinanceData, Transaction } from './types';
  */
 
 export type InsightTone = 'positive' | 'negative' | 'warning' | 'neutral';
-export type InsightKind = 'spending' | 'category' | 'alert' | 'savings' | 'cashflow' | 'budget' | 'goal' | 'loan' | 'habit';
+export type InsightKind = 'spending' | 'category' | 'alert' | 'savings' | 'cashflow' | 'budget' | 'goal' | 'loan' | 'card' | 'habit';
 
 export interface Insight {
   /** Stable id, e.g. 'category-up:food' */
@@ -124,6 +125,7 @@ const TONE_ORDER: Record<InsightTone, number> = { negative: 0, warning: 1, posit
 
 const rupees = (n: number) => formatINR(Math.round(n));
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+const dueIn = (days: number) => (days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`);
 
 const mean = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 
@@ -147,7 +149,7 @@ function projectSpending(current: number, previous: number, lastMonthTotal: numb
 }
 
 export function buildInsights(data: FinanceData, today: string): InsightsReport {
-  const { transactions, categories, accounts, budgets, goals, loans } = data;
+  const { transactions, categories, accounts, budgets, goals, loans, creditCards } = data;
   const names = new Map(categories.map((c) => [c.id, c.name]));
   const nameOf = (id: string) => names.get(id) ?? 'Uncategorized';
 
@@ -561,12 +563,11 @@ export function buildInsights(data: FinanceData, today: string): InsightsReport 
         detail: `${rupees(loan.emi)} was due on ${formatDate(loan.nextDue)}.`,
       });
     } else if (s.daysUntilDue <= RULES.loanDueWithinDays) {
-      const when = s.daysUntilDue === 0 ? 'today' : s.daysUntilDue === 1 ? 'tomorrow' : `in ${s.daysUntilDue} days`;
       add({
         id: `loan-due:${loan.id}`,
         kind: 'loan',
         tone: 'warning',
-        title: `${loan.name} EMI of ${rupees(loan.emi)} due ${when}`,
+        title: `${loan.name} EMI of ${rupees(loan.emi)} due ${dueIn(s.daysUntilDue)}`,
         detail: `Due on ${formatDate(loan.nextDue)} — keep the money ready in your account.`,
       });
     }
@@ -579,6 +580,39 @@ export function buildInsights(data: FinanceData, today: string): InsightsReport 
       tone: 'warning',
       title: `EMIs take ${formatPercent(totalEmi / avgMonthlyIncome)} of your income`,
       detail: `${rupees(totalEmi)} a month goes to EMIs. Planners suggest keeping this under 40%.`,
+    });
+  }
+
+  // Credit cards
+  for (const card of creditCards) {
+    const s = cardSummary(card, today);
+    if (s.status === 'overdue') {
+      const late = -s.daysUntilDue;
+      add({
+        id: `card-overdue:${card.id}`,
+        kind: 'card',
+        tone: 'negative',
+        title: `${card.name} payment is overdue by ${late} ${plural(late, 'day', 'days')}`,
+        detail: `The minimum of ${rupees(card.minDue)} was due on ${formatDate(card.dueDate)}. Paying it soon limits late fees and interest.`,
+      });
+    } else if (s.status === 'due-soon') {
+      add({
+        id: `card-due:${card.id}`,
+        kind: 'card',
+        tone: 'warning',
+        title: `${card.name} minimum of ${rupees(card.minDue)} due ${dueIn(s.daysUntilDue)}`,
+        detail: `Due on ${formatDate(card.dueDate)}. Paying the full ${rupees(card.outstanding)} avoids interest.`,
+      });
+    }
+  }
+  const cards = cardsOverview(creditCards);
+  if (cards.limit > 0 && cards.usage >= USAGE_WARNING) {
+    add({
+      id: 'card-usage',
+      kind: 'card',
+      tone: 'warning',
+      title: `Your cards are ${formatPercent(cards.usage)} used`,
+      detail: `${rupees(cards.owed)} of ${rupees(cards.limit)} in limits. Keeping it under 30% helps your credit score.`,
     });
   }
 

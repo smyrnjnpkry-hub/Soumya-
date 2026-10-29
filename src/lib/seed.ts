@@ -1,6 +1,6 @@
 import { addMonthsToDate, addMonthsToKey, daysInMonth, lastNMonths, monthKey } from './dates';
 import { DEFAULT_CATEGORIES } from './defaults';
-import type { Account, Budget, FinanceData, Goal, Loan, Transaction } from './types';
+import type { Account, Budget, CreditCard, FinanceData, Goal, Loan, Transaction } from './types';
 
 const SAMPLE_PREFIX = 'sample-';
 
@@ -21,9 +21,13 @@ function mulberry32(seed: number) {
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
+/** Credit card bills paid from the bank, oldest month first. Fixed, so the random history stays the same. */
+const HDFC_BILLS = [4210, 3860, 4540, 3720, 4380, 3540, 3780];
+const SBI_BILLS = [940, 820, 1060, 780, 990, 870, 760];
+
 /**
  * A realistic six-month history for a salaried professional in a metro city:
- * salary, rent, EMIs, UPI spending, the occasional big purchase — ending today.
+ * salary, rent, EMIs, card bills, UPI spending, the occasional big purchase — ending today.
  */
 export function createSampleData(today: string): FinanceData {
   const rand = mulberry32(20261028);
@@ -86,6 +90,9 @@ export function createSampleData(today: string): FinanceData {
     add(on(12), 'expense', 799, 'bills', 'upi', 'Broadband');
     add(on(15), 'expense', 349, 'bills', 'upi', 'Mobile recharge');
     add(on(18), 'expense', 649, 'entertainment', 'upi', 'Netflix');
+    // Card bills: one matched by its last 4 digits, the other by the card's name
+    add(on(2), 'expense', HDFC_BILLS[index], 'bills', 'bank', 'Credit card bill ••4417');
+    add(on(17), 'expense', SBI_BILLS[index], 'bills', 'bank', 'SBI SimplyCLICK payment');
 
     // Day-to-day spending (a busier food month and one big purchase this month)
     const groceryRuns = 4 + Math.floor(rand() * 2);
@@ -154,7 +161,7 @@ export function createSampleData(today: string): FinanceData {
     transport: 6000,
     shopping: 12000,
     entertainment: 2500,
-    bills: 4500,
+    bills: 10000,
     personal: 1500,
   };
   const budgets: Budget[] = [currentKey, addMonthsToKey(currentKey, -1)].flatMap((month) =>
@@ -167,7 +174,7 @@ export function createSampleData(today: string): FinanceData {
     { id: 'goal-goa', name: 'Goa trip', target: 35000, current: 35000, deadline: addMonthsToDate(today, 1) },
   ];
 
-  // Next EMI dates: the 5th and 12th, this month if not yet passed
+  // Next EMI and card due dates: this month if not yet passed
   const nextOn = (day: number) => {
     const thisMonth = `${currentKey}-${pad2(day)}`;
     return thisMonth > today ? thisMonth : `${addMonthsToKey(currentKey, 1)}-${pad2(day)}`;
@@ -185,5 +192,28 @@ export function createSampleData(today: string): FinanceData {
     },
   ];
 
-  return { transactions, accounts, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })), budgets, goals, loans };
+  const creditCards: CreditCard[] = [
+    {
+      id: 'card-hdfc',
+      name: 'HDFC Millennia',
+      limit: 150000,
+      outstanding: 23480,
+      minDue: 1180,
+      dueDate: nextOn(3),
+      interestRate: 42,
+      last4: '4417',
+    },
+    {
+      id: 'card-sbi',
+      name: 'SBI SimplyCLICK',
+      limit: 80000,
+      outstanding: 6240,
+      minDue: 320,
+      dueDate: nextOn(18),
+      interestRate: 42,
+      last4: '9023',
+    },
+  ];
+
+  return { transactions, accounts, categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })), budgets, goals, loans, creditCards };
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildInsights, type Insight } from './insights';
-import type { Budget, Category, FinanceData, Goal, Loan, Transaction } from './types';
+import type { Budget, Category, CreditCard, FinanceData, Goal, Loan, Transaction } from './types';
 
 const categories: Category[] = [
   { id: 'salary', name: 'Salary', icon: 'briefcase', color: 'green', type: 'income' },
@@ -52,6 +52,7 @@ const data = (overrides: Partial<FinanceData> = {}): FinanceData => ({
   budgets: [],
   goals: [],
   loans: [],
+  creditCards: [],
   ...overrides,
 });
 
@@ -308,6 +309,47 @@ describe('buildInsights — goals and loans', () => {
     expect(byId(report.insights, 'loan-due:l3')).toBeUndefined();
     // 36,600 of EMIs vs 60,000 monthly income = 61%
     expect(byId(report.insights, 'emi-burden')).toMatchObject({ tone: 'warning', title: 'EMIs take 61% of your income' });
+  });
+});
+
+describe('buildInsights — credit cards', () => {
+  const card = (id: string, name: string, change: Partial<CreditCard>): CreditCard => ({
+    id,
+    name,
+    limit: 100000,
+    outstanding: 10000,
+    minDue: 500,
+    dueDate: '2026-11-15',
+    interestRate: 42,
+    ...change,
+  });
+
+  it('reminds about a card’s minimum due within a week and flags an overdue one', () => {
+    const creditCards = [
+      card('c1', 'HDFC Millennia', { outstanding: 23480, minDue: 1180, dueDate: '2026-10-25' }),
+      card('c2', 'SBI SimplyCLICK', { outstanding: 6240, minDue: 320, dueDate: '2026-10-18' }),
+      card('c3', 'Minimum paid', { minDue: 0, dueDate: '2026-10-18' }),
+      card('c4', 'Due in 8 days', { dueDate: '2026-10-28' }),
+    ];
+    const report = buildInsights(data({ creditCards }), TODAY);
+    expect(byId(report.insights, 'card-due:c1')).toMatchObject({
+      kind: 'card',
+      tone: 'warning',
+      title: 'HDFC Millennia minimum of ₹1,180 due in 5 days',
+    });
+    expect(byId(report.insights, 'card-overdue:c2')).toMatchObject({
+      kind: 'card',
+      tone: 'negative',
+      title: 'SBI SimplyCLICK payment is overdue by 2 days',
+    });
+    expect(report.insights.filter((i) => /:c[34]$/.test(i.id))).toEqual([]);
+  });
+
+  it('warns once cards use 30% of their limits', () => {
+    const usage = (outstanding: number) =>
+      byId(buildInsights(data({ creditCards: [card('c1', 'HDFC Millennia', { outstanding })] }), TODAY).insights, 'card-usage');
+    expect(usage(30000)).toMatchObject({ kind: 'card', tone: 'warning', title: 'Your cards are 30% used' });
+    expect(usage(29900)).toBeUndefined();
   });
 });
 
