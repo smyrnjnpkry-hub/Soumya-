@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildInsights, type Insight } from './insights';
-import type { Budget, Category, CreditCard, FinanceData, Goal, Loan, Transaction } from './types';
+import type { Budget, Category, CreditCard, FinanceData, Goal, LentBorrowed, Loan, Transaction } from './types';
 
 const categories: Category[] = [
   { id: 'salary', name: 'Salary', icon: 'briefcase', color: 'green', type: 'income' },
@@ -53,6 +53,7 @@ const data = (overrides: Partial<FinanceData> = {}): FinanceData => ({
   goals: [],
   loans: [],
   creditCards: [],
+  lentBorrowed: [],
   ...overrides,
 });
 
@@ -350,6 +351,107 @@ describe('buildInsights — credit cards', () => {
       byId(buildInsights(data({ creditCards: [card('c1', 'HDFC Millennia', { outstanding })] }), TODAY).insights, 'card-usage');
     expect(usage(30000)).toMatchObject({ kind: 'card', tone: 'warning', title: 'Your cards are 30% used' });
     expect(usage(29900)).toBeUndefined();
+  });
+});
+
+describe('buildInsights — Lent & Borrowed reminders', () => {
+  const person = (id: string, name: string, change: Partial<LentBorrowed>): LentBorrowed => ({
+    id,
+    person: name,
+    direction: 'lent',
+    principal: 10000,
+    interestType: 'none',
+    interestRate: 0,
+    startDate: '2026-07-01',
+    remind: true,
+    payments: [],
+    ...change,
+  });
+  const pay = (date: string, interestPortion: number) => ({
+    id: `${date}-${interestPortion}`,
+    date,
+    type: 'interest' as const,
+    interestPortion,
+    principalPortion: 0,
+  });
+  const reminders = (lentBorrowed: LentBorrowed[]) =>
+    buildInsights(data({ lentBorrowed }), TODAY)
+      .insights.filter((i) => i.kind === 'lending')
+      .map((i) => [i.id, i.tone, i.title]);
+
+  it('reminds about interest and money owed to you that is overdue or due within a week', () => {
+    expect(
+      reminders([
+        // ₹1,000 a month since Aug 10, none paid
+        person('ramesh', 'Ramesh Kumar', {
+          principal: 50000,
+          interestType: 'monthly',
+          interestRate: 2,
+          startDate: '2026-07-10',
+          dueDay: 10,
+        }),
+        // ₹200 a month, September's paid; October's due on the 25th
+        person('sunil', 'Sunil', { interestType: 'monthly', interestRate: 2, startDate: '2026-08-25', payments: [pay('2026-09-25', 200)] }),
+        person('anil', 'Anil', { principal: 5000, dueDate: '2026-10-15' }),
+      ]),
+    ).toEqual([
+      ['lending-overdue:ramesh', 'negative', '₹3,000 interest pending from Ramesh Kumar'],
+      ['lending-overdue:anil', 'negative', '₹5,000 from Anil was due back 5 days ago'],
+      ['lending-due:sunil', 'warning', '₹200 interest from Sunil due in 5 days'],
+    ]);
+  });
+
+  it('reminds about money you owe in the same way', () => {
+    expect(
+      reminders([
+        person('priya', 'Priya', { direction: 'borrowed', principal: 6000, dueDate: '2026-10-23' }),
+        person('mohan', 'Mohan', {
+          direction: 'borrowed',
+          principal: 20000,
+          interestType: 'monthly',
+          interestRate: 1,
+          startDate: '2026-08-22',
+          payments: [pay('2026-09-22', 200)],
+        }),
+        person('vikram', 'Vikram', { direction: 'borrowed', interestType: 'monthly', interestRate: 2, startDate: '2026-08-05' }),
+        person('kiran', 'Kiran', { direction: 'borrowed', principal: 3000, dueDate: '2026-10-19' }),
+      ]),
+    ).toEqual([
+      ['lending-overdue:vikram', 'negative', 'Your ₹400 interest to Vikram is overdue'],
+      ['lending-overdue:kiran', 'negative', '₹3,000 to Kiran was due back yesterday'],
+      ['lending-due:mohan', 'warning', 'Your ₹200 interest to Mohan is due in 2 days'],
+      ['lending-due:priya', 'warning', '₹6,000 to Priya due back in 3 days'],
+    ]);
+  });
+
+  it('stays quiet with reminders off, for later dates, and once settled', () => {
+    expect(
+      reminders([
+        person('quiet', 'Quiet', { dueDate: '2026-10-15', remind: false }),
+        person('later', 'Later', { dueDate: '2026-11-15' }),
+        person('settled', 'Settled', {
+          dueDate: '2026-10-15',
+          payments: [{ id: 's', date: '2026-10-01', type: 'settlement', interestPortion: 0, principalPortion: 10000 }],
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it('shows at most two of each, the most urgent first', () => {
+    const soon = ['2026-10-26', '2026-10-21', '2026-10-24'].map((dueDate, i) => person(`p${i}`, `Person ${i}`, { dueDate }));
+    expect(reminders(soon).map(([id]) => id)).toEqual(['lending-due:p1', 'lending-due:p2']);
+  });
+});
+
+describe('buildInsights — money lent or borrowed', () => {
+  it('leaves money lent out of spending and alerts, but not out of the balance', () => {
+    const lent: Transaction = { ...tx('2026-10-18', 'expense', 20000, 'shopping', 'UPI to Ramesh'), principalPart: 20000 };
+    const report = buildInsights(data({ transactions: [...base, lent] }), TODAY);
+    expect(report.spending.current).toBe(22000);
+    expect(report.categories.find((c) => c.categoryId === 'shopping')?.current).toBe(1000);
+    expect(report.insights.filter((i) => `${i.title} ${i.detail}`.includes('20,000'))).toEqual([]);
+    // 1,59,000 less the ₹20,000 that left the bank
+    expect(report.cashFlow.balance).toBe(139000);
   });
 });
 

@@ -9,7 +9,7 @@ const escapeCell = (value: string) => (NEEDS_QUOTES.test(value) ? `"${value.repl
 export const toCSV = (rows: string[][]): string => rows.map((row) => row.map(escapeCell).join(',')).join('\r\n');
 
 /** Stops spreadsheet apps from evaluating user text such as "=HYPERLINK(...)" as a formula. */
-const safeText = (value: string) => (/^[=+\-@\t\r]/.test(value) ? `'${value}` : value);
+export const safeText = (value: string) => (/^[=+\-@\t\r]/.test(value) ? `'${value}` : value);
 
 const TYPE_LABEL: Record<Transaction['type'], string> = {
   income: 'Income',

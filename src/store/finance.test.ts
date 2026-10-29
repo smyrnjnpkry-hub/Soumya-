@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { accountBalances } from '@/lib/finance';
-import type { CreditCard, FinanceData } from '@/lib/types';
+import { accountBalances, monthTotals } from '@/lib/finance';
+import { entrySummary, owedOn } from '@/lib/lending';
+import type { CreditCard, FinanceData, LentBorrowed } from '@/lib/types';
 import { STATEMENT_ACCOUNT } from '@/lib/statement/types';
 import { useFinance } from './finance';
 
@@ -13,6 +14,18 @@ const hdfc: CreditCard = {
   dueDate: '2026-11-03',
   interestRate: 42,
   last4: '4417',
+};
+
+const kumar: LentBorrowed = {
+  id: 'lb1',
+  person: 'Kumar',
+  direction: 'lent',
+  principal: 3000,
+  interestType: 'none',
+  interestRate: 0,
+  startDate: '2026-09-01',
+  remind: true,
+  payments: [],
 };
 
 const fixture = (): FinanceData => ({
@@ -32,6 +45,8 @@ const fixture = (): FinanceData => ({
     { id: 'emi', name: 'EMI & Loans', icon: 'landmark', color: 'red', type: 'expense' },
     { id: 'bills', name: 'Bills & Utilities', icon: 'zap', color: 'yellow', type: 'expense' },
     { id: 'salary', name: 'Salary', icon: 'briefcase', color: 'green', type: 'income' },
+    { id: 'interest', name: 'Interest & Dividends', icon: 'trending-up', color: 'aqua', type: 'income' },
+    { id: 'other-income', name: 'Other Income', icon: 'coins', color: 'slate', type: 'income' },
   ],
   budgets: [
     { id: 'b1', category: 'snacks', month: '2026-10', limit: 1000 },
@@ -41,6 +56,7 @@ const fixture = (): FinanceData => ({
   goals: [{ id: 'g1', name: 'Bike', target: 90000, current: 1000, deadline: '2027-06-01' }],
   loans: [{ id: 'l1', name: 'Phone', principal: 30000, emi: 2700, interestRate: 14, remainingTenure: 10, nextDue: '2026-11-05' }],
   creditCards: [hdfc],
+  lentBorrowed: [kumar],
 });
 
 const state = () => useFinance.getState();
@@ -126,7 +142,7 @@ describe('goals and transactions', () => {
   it('starts fresh with default categories and accounts and no sample flag', () => {
     state().startFresh();
     const s = state();
-    expect([s.transactions, s.budgets, s.goals, s.loans, s.creditCards]).toEqual([[], [], [], [], []]);
+    expect([s.transactions, s.budgets, s.goals, s.loans, s.creditCards, s.lentBorrowed]).toEqual([[], [], [], [], [], []]);
     expect(s.categories.some((c) => c.id === 'salary')).toBe(true);
     expect(s.accounts.map((a) => a.type).sort()).toEqual(['bank', 'cash', 'upi']);
     expect(s.isSample).toBe(false);
@@ -192,11 +208,13 @@ describe('statement import', () => {
     expect(state().transactions.map((t) => t.note)).toEqual(['Zomato', 'ATM withdrawal', 'Acme Labs']);
     expect(state().goals).toEqual([]);
     expect(state().creditCards).toEqual([]);
+    expect(state().lentBorrowed).toEqual([]);
     state().undoImport(receipt);
     expect(state().isSample).toBe(true);
     expect(state().transactions.map((t) => t.id)).toEqual(['t1', 't2', 't3']);
     expect(state().goals).toHaveLength(1);
     expect(state().creditCards).toEqual([hdfc]);
+    expect(state().lentBorrowed).toEqual([kumar]);
   });
 });
 
@@ -318,5 +336,324 @@ describe('credit cards', () => {
     };
     state().updateTransaction('t4', draft);
     expect(txn('t4')).toMatchObject({ note: 'HDFC card payment', creditCardId: 'c1' });
+  });
+});
+
+describe('lent & borrowed', () => {
+  const draft = {
+    person: 'Ramesh',
+    direction: 'lent' as const,
+    principal: 20000,
+    interestType: 'monthly' as const,
+    interestRate: 2,
+    startDate: '2026-08-01',
+    dueDay: 10,
+    remind: true,
+  };
+  // The ₹20,000 leaving the bank, imported from a statement as "Other" spending
+  const upi = {
+    id: 'upi-out',
+    type: 'expense' as const,
+    amount: 20000,
+    date: '2026-08-02',
+    category: 'other-expense',
+    account: 'bank',
+    note: 'UPI to Ramesh',
+  };
+  // Ramesh repaying ₹5,000 with ₹200 interest in one transfer
+  const repaid = {
+    id: 'upi-in',
+    type: 'income' as const,
+    amount: 5200,
+    date: '2026-10-12',
+    category: 'other-income',
+    account: 'bank',
+    note: 'UPI from Ramesh',
+  };
+  const entry = (id: string) => state().lentBorrowed.find((e) => e.id === id)!;
+  const txn = (id: string) => state().transactions.find((t) => t.id === id);
+  const balances = () => accountBalances(state().accounts, state().transactions);
+  const month = (key: string) => monthTotals(state().transactions, key);
+
+  beforeEach(() => state().replaceAll({ ...fixture(), transactions: [...fixture().transactions, upi, repaid] }));
+
+  describe('adding someone', () => {
+    it('can link the bank transaction where the money went out, so it stops counting as spending', () => {
+      const before = balances();
+      const id = state().addLentBorrowed(draft, { transactionId: 'upi-out' });
+      expect(entry(id)).toMatchObject({ ...draft, payments: [], startTransactionId: 'upi-out' });
+      expect(entry(id).addedStartTransaction).toBeUndefined();
+      expect(txn('upi-out')?.principalPart).toBe(20000);
+      expect(month('2026-08').expense).toBe(0);
+      expect(balances()).toEqual(before);
+      expect(state().transactions).toHaveLength(5);
+    });
+
+    it('can add the money going out as a new transaction instead', () => {
+      const id = state().addLentBorrowed(draft, { accountId: 'bank' });
+      const added = state().transactions[0];
+      expect(added).toMatchObject({
+        type: 'expense',
+        amount: 20000,
+        date: '2026-08-01',
+        category: 'other-expense',
+        account: 'bank',
+        note: 'Lent to Ramesh',
+        principalPart: 20000,
+      });
+      expect(entry(id)).toMatchObject({ startTransactionId: added.id, addedStartTransaction: true });
+      // The imported ₹20,000 isn't linked, so it still counts
+      expect(month('2026-08').expense).toBe(20000);
+    });
+
+    it('adds money borrowed as money in that isn’t income', () => {
+      state().addLentBorrowed(
+        { ...draft, person: 'Priya', direction: 'borrowed', interestType: 'none', interestRate: 0 },
+        { accountId: 'bank' },
+      );
+      expect(state().transactions[0]).toMatchObject({
+        type: 'income',
+        category: 'other-income',
+        note: 'Borrowed from Priya',
+        principalPart: 20000,
+      });
+      expect(month('2026-08').income).toBe(0);
+    });
+
+    it('can leave your transactions alone', () => {
+      const id = state().addLentBorrowed(draft, null);
+      expect(state().transactions).toHaveLength(5);
+      expect(entry(id).startTransactionId).toBeUndefined();
+    });
+  });
+
+  describe('payments', () => {
+    let id = '';
+    beforeEach(() => {
+      id = state().addLentBorrowed(draft, null);
+    });
+
+    it('counts only the interest in a repayment as income, keeping the full amount in the balance', () => {
+      const before = balances();
+      state().recordLentBorrowedPayment(id, {
+        kind: 'money',
+        date: '2026-10-12',
+        interestPortion: 200,
+        principalPortion: 5000,
+        record: { transactionId: 'upi-in' },
+      });
+      expect(entry(id).payments).toEqual([
+        {
+          id: expect.any(String),
+          date: '2026-10-12',
+          type: 'mixed',
+          interestPortion: 200,
+          principalPortion: 5000,
+          linkedTransactionId: 'upi-in',
+        },
+      ]);
+      expect(txn('upi-in')?.principalPart).toBe(5000);
+      // ₹50,000 salary + ₹200 interest
+      expect(month('2026-10').income).toBe(50200);
+      expect(balances()).toEqual(before);
+      expect(owedOn(entry(id), '2026-10-12')).toBe(15000);
+    });
+
+    it('leaves an interest-only transaction counting in full as income', () => {
+      state().recordLentBorrowedPayment(id, {
+        kind: 'interest',
+        date: '2026-10-12',
+        interestPortion: 5200,
+        principalPortion: 0,
+        record: { transactionId: 'upi-in' },
+      });
+      expect(entry(id).payments[0]).toMatchObject({ type: 'interest', linkedTransactionId: 'upi-in' });
+      expect(txn('upi-in')?.principalPart).toBeUndefined();
+      expect(month('2026-10').income).toBe(55200);
+    });
+
+    it.each([
+      ['interest', 400, 0, 'interest', 'Interest from Ramesh'],
+      ['money', 0, 5000, 'other-income', 'Ramesh paid back'],
+      ['money', 200, 5000, 'interest', 'Ramesh paid back with interest'],
+    ] as const)(
+      'can add a %s payment as a new transaction (₹%s interest, ₹%s back)',
+      (kind, interestPortion, principalPortion, category, note) => {
+        state().recordLentBorrowedPayment(id, {
+          kind,
+          date: '2026-10-29',
+          interestPortion,
+          principalPortion,
+          record: { accountId: 'bank' },
+        });
+        const added = state().transactions[0];
+        expect(added).toMatchObject({
+          type: 'income',
+          amount: interestPortion + principalPortion,
+          date: '2026-10-29',
+          category,
+          account: 'bank',
+          note,
+        });
+        expect(added.principalPart ?? 0).toBe(principalPortion);
+        expect(entry(id).payments[0]).toMatchObject({ linkedTransactionId: added.id, addedTransaction: true });
+      },
+    );
+
+    it('adds payments on money you borrowed as spending under EMI & Loans, only the interest counting', () => {
+      const owe = state().addLentBorrowed({ ...draft, person: 'Priya', direction: 'borrowed' }, null);
+      state().recordLentBorrowedPayment(owe, {
+        kind: 'money',
+        date: '2026-10-29',
+        interestPortion: 300,
+        principalPortion: 4000,
+        record: { accountId: 'bank' },
+      });
+      expect(state().transactions[0]).toMatchObject({
+        type: 'expense',
+        amount: 4300,
+        category: 'emi',
+        note: 'Paid back Priya with interest',
+        principalPart: 4000,
+      });
+      // ₹400 samosa + ₹300 interest
+      expect(month('2026-10').expense).toBe(700);
+    });
+
+    it('settles everything owed on the day, letting go of interest not paid', () => {
+      // Sep 10 and Oct 10 each add ₹400 (2% of ₹20,000)
+      state().recordLentBorrowedPayment(id, {
+        kind: 'settle',
+        date: '2026-10-29',
+        interestPortion: 500,
+        principalPortion: 1,
+        record: null,
+      });
+      expect(entry(id).payments[0]).toMatchObject({ type: 'settlement', interestPortion: 500, principalPortion: 20000, waived: 300 });
+      expect(entrySummary(entry(id), '2026-10-29').settled).toBe(true);
+    });
+
+    it('takes a payment out again (Undo), putting its transaction back as it was', () => {
+      const linked = state().recordLentBorrowedPayment(id, {
+        kind: 'money',
+        date: '2026-10-12',
+        interestPortion: 200,
+        principalPortion: 5000,
+        record: { transactionId: 'upi-in' },
+      })!;
+      const added = state().recordLentBorrowedPayment(id, {
+        kind: 'interest',
+        date: '2026-10-29',
+        interestPortion: 400,
+        principalPortion: 0,
+        record: { accountId: 'bank' },
+      })!;
+      state().deleteLentBorrowedPayment(id, added.paymentId);
+      state().deleteLentBorrowedPayment(id, linked.paymentId);
+      expect(entry(id).payments).toEqual([]);
+      expect(txn('upi-in')?.principalPart).toBeUndefined();
+      expect(state().transactions.map((t) => t.id)).toEqual(['t1', 't2', 't3', 'upi-out', 'upi-in']);
+    });
+
+    it('refuses a payment for someone who isn’t there', () => {
+      expect(
+        state().recordLentBorrowedPayment('gone', {
+          kind: 'interest',
+          date: '2026-10-29',
+          interestPortion: 400,
+          principalPortion: 0,
+          record: null,
+        }),
+      ).toBeNull();
+    });
+  });
+
+  it('corrects what’s still owed with a dated line in the history, either way', () => {
+    const id = state().addLentBorrowed(draft, null);
+    state().adjustRemaining(id, { owed: 15000, date: '2026-10-20', note: 'Forgave ₹5,000' });
+    expect(entry(id).payments[0]).toMatchObject({
+      type: 'correction',
+      date: '2026-10-20',
+      interestPortion: 0,
+      principalPortion: 5000,
+      note: 'Forgave ₹5,000',
+    });
+    state().adjustRemaining(id, { owed: 18000, date: '2026-10-21' });
+    expect([owedOn(entry(id), '2026-10-20'), owedOn(entry(id), '2026-10-21')]).toEqual([15000, 18000]);
+  });
+
+  it('deleting someone removes what the app added and takes the marker off linked transactions', () => {
+    const id = state().addLentBorrowed(draft, { transactionId: 'upi-out' });
+    state().recordLentBorrowedPayment(id, {
+      kind: 'money',
+      date: '2026-10-12',
+      interestPortion: 200,
+      principalPortion: 5000,
+      record: { transactionId: 'upi-in' },
+    });
+    state().recordLentBorrowedPayment(id, {
+      kind: 'interest',
+      date: '2026-10-29',
+      interestPortion: 300,
+      principalPortion: 0,
+      record: { accountId: 'bank' },
+    });
+    state().deleteLentBorrowed(id);
+    expect(state().lentBorrowed.map((e) => e.id)).toEqual(['lb1']);
+    expect(state().transactions.map((t) => [t.id, t.principalPart])).toEqual([
+      ['t1', undefined],
+      ['t2', undefined],
+      ['t3', undefined],
+      ['upi-out', undefined],
+      ['upi-in', undefined],
+    ]);
+  });
+
+  describe('editing', () => {
+    it('keeps a transaction the app added in step with the entry', () => {
+      const id = state().addLentBorrowed(draft, { accountId: 'bank' });
+      state().updateLentBorrowed(id, { ...draft, person: 'Ramesh K', principal: 25000, startDate: '2026-08-03' });
+      expect(txn(entry(id).startTransactionId!)).toMatchObject({
+        amount: 25000,
+        principalPart: 25000,
+        date: '2026-08-03',
+        note: 'Lent to Ramesh K',
+      });
+    });
+
+    it('never marks more of a linked bank transaction than its amount', () => {
+      const id = state().addLentBorrowed(draft, { transactionId: 'upi-out' });
+      state().updateLentBorrowed(id, { ...draft, principal: 25000 });
+      expect(txn('upi-out')).toMatchObject({ amount: 20000, principalPart: 20000 });
+    });
+
+    it('won’t switch between lent and borrowed once there’s history', () => {
+      const id = state().addLentBorrowed(draft, null);
+      state().recordLentBorrowedPayment(id, {
+        kind: 'interest',
+        date: '2026-10-12',
+        interestPortion: 400,
+        principalPortion: 0,
+        record: null,
+      });
+      state().updateLentBorrowed(id, { ...draft, direction: 'borrowed', person: 'Ramesh Kumar' });
+      expect(entry(id)).toMatchObject({ direction: 'lent', person: 'Ramesh Kumar' });
+    });
+
+    it('editing a linked transaction keeps its money-back part from the payment, capped at the new amount', () => {
+      const id = state().addLentBorrowed(draft, null);
+      state().recordLentBorrowedPayment(id, {
+        kind: 'money',
+        date: '2026-10-12',
+        interestPortion: 200,
+        principalPortion: 5000,
+        record: { transactionId: 'upi-in' },
+      });
+      const { id: _, principalPart: __, ...fields } = txn('upi-in')!;
+      state().updateTransaction('upi-in', { ...fields, amount: 3000 });
+      expect(txn('upi-in')?.principalPart).toBe(3000);
+      state().updateTransaction('upi-in', { ...fields, amount: 6000 });
+      expect(txn('upi-in')?.principalPart).toBe(5000);
+    });
   });
 });

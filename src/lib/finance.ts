@@ -7,6 +7,25 @@ export const OTHER_ID = '__other__';
 
 const inRange = (t: Transaction, start: string, end: string) => t.date >= start && t.date <= end;
 
+/**
+ * What a transaction counts for in income and spending: its amount less any money lent, borrowed or paid back in it
+ * (Lent & Borrowed). Account balances always use the full amount.
+ */
+export const countedAmount = (t: Transaction): number => round2(t.amount - Math.min(Math.max(t.principalPart ?? 0, 0), t.amount));
+
+/** Transactions as income and spending see them: counted amounts, and nothing that counts for nothing. */
+export function countedTransactions(transactions: Transaction[]): Transaction[] {
+  const out: Transaction[] = [];
+  for (const t of transactions) {
+    if (t.type === 'transfer' || t.principalPart === undefined) out.push(t);
+    else {
+      const amount = countedAmount(t);
+      if (amount > 0) out.push({ ...t, amount, principalPart: undefined });
+    }
+  }
+  return out;
+}
+
 /** Current balance per account: opening balance + income − expenses ± transfers. */
 export function accountBalances(accounts: Account[], transactions: Transaction[]): Record<string, number> {
   const balances: Record<string, number> = {};
@@ -48,8 +67,8 @@ export function periodTotals(transactions: Transaction[], start: string, end: st
   let expense = 0;
   for (const t of transactions) {
     if (!inRange(t, start, end)) continue;
-    if (t.type === 'income') income += t.amount;
-    else if (t.type === 'expense') expense += t.amount;
+    if (t.type === 'income') income += countedAmount(t);
+    else if (t.type === 'expense') expense += countedAmount(t);
   }
   income = round2(income);
   expense = round2(expense);
@@ -77,12 +96,13 @@ export function categoryBreakdown(
   const byCategory = new Map<string, { amount: number; count: number }>();
   let total = 0;
   for (const t of transactions) {
-    if (t.type !== type || !inRange(t, start, end)) continue;
+    const amount = countedAmount(t);
+    if (t.type !== type || !inRange(t, start, end) || amount <= 0) continue;
     const entry = byCategory.get(t.category) ?? { amount: 0, count: 0 };
-    entry.amount += t.amount;
+    entry.amount += amount;
     entry.count += 1;
     byCategory.set(t.category, entry);
-    total += t.amount;
+    total += amount;
   }
   return [...byCategory]
     .map(([categoryId, { amount, count }]) => ({
@@ -124,8 +144,8 @@ export function monthlySeries(transactions: Transaction[], keys: string[]): Mont
   for (const t of transactions) {
     const bucket = buckets.get(monthKey(t.date));
     if (!bucket) continue;
-    if (t.type === 'income') bucket.income += t.amount;
-    else if (t.type === 'expense') bucket.expense += t.amount;
+    if (t.type === 'income') bucket.income += countedAmount(t);
+    else if (t.type === 'expense') bucket.expense += countedAmount(t);
   }
   return keys.map((key) => {
     const { income, expense } = buckets.get(key)!;
@@ -169,7 +189,7 @@ export function budgetProgress(budgets: Budget[], transactions: Transaction[], k
 export function dailyCumulative(transactions: Transaction[], key: string, type: CategoryType = 'expense') {
   const perDay = new Array<number>(daysInMonth(key)).fill(0);
   for (const t of transactions) {
-    if (t.type === type && monthKey(t.date) === key) perDay[Number(t.date.slice(8, 10)) - 1] += t.amount;
+    if (t.type === type && monthKey(t.date) === key) perDay[Number(t.date.slice(8, 10)) - 1] += countedAmount(t);
   }
   let running = 0;
   return perDay.map((amount, i) => {
@@ -187,7 +207,7 @@ export function weekdayAverages(transactions: Transaction[], start: string, end:
   const occurrences = new Array<number>(7).fill(0);
   for (let day = start; day <= end; day = addDays(day, 1)) occurrences[mondayFirst(day)]++;
   for (const t of transactions) {
-    if (t.type === 'expense' && inRange(t, start, end)) totals[mondayFirst(t.date)] += t.amount;
+    if (t.type === 'expense' && inRange(t, start, end)) totals[mondayFirst(t.date)] += countedAmount(t);
   }
   return WEEKDAYS.map((label, i) => ({
     label,

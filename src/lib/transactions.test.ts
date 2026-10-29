@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterTransactions, groupByDay, sortByDateDesc } from './transactions';
+import { filterTransactions, groupByDay, incomeAndSpending, sortByDateDesc } from './transactions';
 import type { Account, Category, Transaction } from './types';
 
 const categories: Record<string, Category> = {
@@ -78,5 +78,22 @@ describe('groupByDay', () => {
       ['2026-10-01', ['b'], 60000, 0],
       ['2026-09-28', ['d'], 0, 0],
     ]);
+  });
+});
+
+describe('money lent, borrowed or paid back', () => {
+  const lent = { ...t('e', '2026-10-02', 'expense', 20000, 'food', 'bank', 'UPI to Ramesh'), principalPart: 20000 };
+  const repaid = { ...t('f', '2026-10-01', 'income', 5200, 'salary', 'bank', 'Ramesh paid back'), principalPart: 5000 };
+
+  it('is left out of day totals', () => {
+    expect(groupByDay([...list, lent, repaid]).map((g) => [g.date, g.income, g.expense])).toEqual([
+      ['2026-10-02', 0, 1650],
+      ['2026-10-01', 60200, 0],
+      ['2026-09-28', 0, 0],
+    ]);
+  });
+
+  it('is left out of income and spending, like transfers', () => {
+    expect(incomeAndSpending([...list, lent, repaid])).toEqual({ income: 60200, expense: 1650 });
   });
 });

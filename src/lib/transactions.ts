@@ -1,3 +1,4 @@
+import { countedAmount } from './finance';
 import { round2 } from './format';
 import type { Account, Category, Transaction, TransactionType } from './types';
 
@@ -59,8 +60,19 @@ export function groupByDay(transactions: Transaction[]): DayGroup[] {
       groups.push(group);
     }
     group.items.push(t);
-    if (t.type === 'income') group.income = round2(group.income + t.amount);
-    else if (t.type === 'expense') group.expense = round2(group.expense + t.amount);
+    if (t.type === 'income') group.income = round2(group.income + countedAmount(t));
+    else if (t.type === 'expense') group.expense = round2(group.expense + countedAmount(t));
   }
   return groups;
+}
+
+/** Income and spending in a list; transfers and money lent, borrowed or paid back don't count. */
+export function incomeAndSpending(transactions: Transaction[]): { income: number; expense: number } {
+  let income = 0;
+  let expense = 0;
+  for (const t of transactions) {
+    if (t.type === 'income') income += countedAmount(t);
+    else if (t.type === 'expense') expense += countedAmount(t);
+  }
+  return { income: round2(income), expense: round2(expense) };
 }

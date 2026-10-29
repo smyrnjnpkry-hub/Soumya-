@@ -3,6 +3,7 @@ import {
   CalendarDays,
   CreditCard,
   Gauge,
+  HandCoins,
   Landmark,
   PiggyBank,
   Shapes,
@@ -25,6 +26,7 @@ const KIND_ICON: Record<InsightKind, LucideIcon> = {
   goal: Target,
   loan: Landmark,
   card: CreditCard,
+  lending: HandCoins,
   habit: CalendarDays,
 };
 

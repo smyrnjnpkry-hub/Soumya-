@@ -26,6 +26,11 @@ export interface Transaction {
    * matching leaves it alone), or missing (automatic matching decides).
    */
   creditCardId?: string | null;
+  /**
+   * Money lent, borrowed or paid back inside this amount (Lent & Borrowed): it changes the account's balance but isn't
+   * income or spending. Only the rest counts, e.g. the interest in a repayment.
+   */
+  principalPart?: number;
 }
 
 export interface Account {
@@ -94,6 +99,52 @@ export interface CreditCard {
   last4?: string;
 }
 
+export type LentBorrowedType = 'lent' | 'borrowed';
+/** none: just the money back · monthly: interest every month ("byaj") · end: simple interest, paid with the money. */
+export type InterestType = 'none' | 'monthly' | 'end';
+
+export interface LentBorrowedPayment {
+  id: string;
+  /** 'YYYY-MM-DD' */
+  date: string;
+  type: 'interest' | 'principal' | 'mixed' | 'settlement' | 'correction';
+  interestPortion: number;
+  /** Money back. For a correction: how much it lowered what's owed (negative raises it). */
+  principalPortion: number;
+  /** Interest let go when settling. */
+  waived?: number;
+  note?: string;
+  /** This payment's transaction in your books: one you linked, or one added for it. */
+  linkedTransactionId?: string;
+  /** The app added that transaction, so removing the payment removes it. */
+  addedTransaction?: boolean;
+}
+
+/** Money lent to someone or borrowed from them. What's still owed and whether it's settled come from the history. */
+export interface LentBorrowed {
+  id: string;
+  person: string;
+  phone?: string;
+  note?: string;
+  direction: LentBorrowedType;
+  /** Amount lent or borrowed. */
+  principal: number;
+  interestType: InterestType;
+  /** Percent per month, e.g. 2 (24% a year); 0 with no interest. */
+  interestRate: number;
+  /** When the money changed hands, 'YYYY-MM-DD'. */
+  startDate: string;
+  /** Day of the month monthly interest is due (1–31); the start date's day when missing. */
+  dueDay?: number;
+  /** When the money should be back, 'YYYY-MM-DD'. */
+  dueDate?: string;
+  remind: boolean;
+  payments: LentBorrowedPayment[];
+  /** The transaction where the money went out (lent) or came in (borrowed). */
+  startTransactionId?: string;
+  addedStartTransaction?: boolean;
+}
+
 export interface FinanceData {
   transactions: Transaction[];
   accounts: Account[];
@@ -102,4 +153,5 @@ export interface FinanceData {
   goals: Goal[];
   loans: Loan[];
   creditCards: CreditCard[];
+  lentBorrowed: LentBorrowed[];
 }
