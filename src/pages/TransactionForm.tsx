@@ -1,12 +1,13 @@
-import { ArrowLeft, Check, SearchX, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, HandCoins, SearchX, Trash2 } from 'lucide-react';
 import { useMemo, useRef, useState, type FormEvent } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ACCOUNT_ICONS } from '@/components/meta';
 import { CategoryIcon, EmptyState } from '@/components/ui/Bits';
 import { Button, ButtonLink, IconButton } from '@/components/ui/Button';
 import { Chip, Field, Input, sanitizeAmount, Segmented } from '@/components/ui/Form';
 import { addDays, daysBetween, todayISO } from '@/lib/dates';
 import { round2 } from '@/lib/format';
+import { lendingByTransaction, lendingNote } from '@/lib/lending';
 import type { Transaction, TransactionType } from '@/lib/types';
 import { cn } from '@/lib/ui';
 import { useFinance } from '@/store/finance';
@@ -36,9 +37,11 @@ function TransactionForm({ id }: { id?: string }) {
   const updateTransaction = useFinance((s) => s.updateTransaction);
   const deleteTransaction = useFinance((s) => s.deleteTransaction);
   const restoreTransaction = useFinance((s) => s.restoreTransaction);
+  const lentBorrowed = useFinance((s) => s.lentBorrowed);
 
   // Snapshot the transaction being edited so deleting it doesn't flash "not found"
   const [existing] = useState(() => (id ? transactions.find((t) => t.id === id) : undefined));
+  const lending = useMemo(() => (existing ? lendingByTransaction(lentBorrowed).get(existing.id) : undefined), [existing, lentBorrowed]);
   const today = todayISO();
   const amountRef = useRef<HTMLInputElement>(null);
 
@@ -307,6 +310,17 @@ function TransactionForm({ id }: { id?: string }) {
             onChange={(e) => setNote(e.target.value)}
           />
         </Field>
+        {existing && lending && existing.type !== 'transfer' && (
+          <p className="flex gap-2 rounded-xl bg-primary-soft px-3 py-2.5 text-[13px] text-ink-2">
+            <HandCoins className="mt-px size-4 shrink-0 text-primary" aria-hidden />
+            <span>
+              {lendingNote(existing, lending)}{' '}
+              <Link to="/lent-borrowed" className="font-semibold text-primary hover:underline">
+                Manage it in Lent & Borrowed
+              </Link>
+            </span>
+          </p>
+        )}
       </div>
 
       {/* Actions — sticky on phones so Save is always reachable */}

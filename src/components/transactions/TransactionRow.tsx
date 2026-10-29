@@ -4,8 +4,8 @@ import type { Lookup } from '@/lib/transactions';
 import type { Transaction } from '@/lib/types';
 import { Amount, CategoryIcon } from '../ui/Bits';
 
-/** Title + subtitle for a transaction: the note when there is one, else the category. */
-export function describe(t: Transaction, { categories, accounts }: Lookup) {
+/** Title + subtitle for a transaction: the note when there is one, else the category (or Lent & Borrowed). */
+export function describe(t: Transaction, { categories, accounts, lending }: Lookup) {
   const accountName = (id?: string) => (id ? (accounts[id]?.name ?? 'Deleted account') : '');
   if (t.type === 'transfer') {
     return {
@@ -13,7 +13,7 @@ export function describe(t: Transaction, { categories, accounts }: Lookup) {
       subtitle: `${accountName(t.account)} → ${accountName(t.toAccount)}`,
     };
   }
-  const category = categories[t.category]?.name ?? 'Uncategorized';
+  const category = lending?.has(t.id) ? 'Lent & Borrowed' : (categories[t.category]?.name ?? 'Uncategorized');
   return t.note
     ? { title: t.note, subtitle: `${category} · ${accountName(t.account)}` }
     : { title: category, subtitle: accountName(t.account) };

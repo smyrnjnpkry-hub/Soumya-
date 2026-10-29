@@ -1,9 +1,11 @@
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, CreditCard, Landmark, PiggyBank, Plus, Sparkles, X } from 'lucide-react';
-import { useMemo } from 'react';
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, CreditCard, HandCoins, Landmark, PiggyBank, Plus, Sparkles, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { CardStatus } from '@/components/cards/CardStatus';
 import { SpendingDonut } from '@/components/charts/Charts';
+import { EntryForm, PaymentForm } from '@/components/forms/LentBorrowedForms';
 import { InsightItem } from '@/components/insights/InsightItem';
+import { LendingDue } from '@/components/lending/LendingDue';
 import { ACCOUNT_ICONS, BUDGET_COLORS } from '@/components/meta';
 import { TransactionRow } from '@/components/transactions/TransactionRow';
 import { EmptyState, StatusPill } from '@/components/ui/Bits';
@@ -15,7 +17,9 @@ import { daysBetween, monthBounds, monthKey, todayISO } from '@/lib/dates';
 import { accountBalances, budgetProgress, categoryBreakdown, foldBreakdown, monthTotals } from '@/lib/finance';
 import { formatDate, formatINR, formatMonth, formatPercent } from '@/lib/format';
 import { buildInsights } from '@/lib/insights';
+import { entrySummary, lendingOverview, type PaymentKind } from '@/lib/lending';
 import { sortByDateDesc } from '@/lib/transactions';
+import type { LentBorrowed } from '@/lib/types';
 import { cn } from '@/lib/ui';
 import { useFinance, useFinanceData, useLookups } from '@/store/finance';
 
@@ -73,6 +77,8 @@ export default function Dashboard() {
   const today = todayISO();
   const key = monthKey(today);
   const { start, end } = monthBounds(key);
+  const [paying, setPaying] = useState<{ entry: LentBorrowed; kind: PaymentKind } | null>(null);
+  const [addingPerson, setAddingPerson] = useState(false);
 
   const view = useMemo(() => {
     const balances = accountBalances(data.accounts, data.transactions);
@@ -82,6 +88,16 @@ export default function Dashboard() {
     const budgets = budgetProgress(data.budgets, data.transactions, key);
     const nextEmi = data.loans.filter((l) => l.remainingTenure > 0).sort((a, b) => a.nextDue.localeCompare(b.nextDue))[0];
     const cards = data.creditCards.length ? cardsOverview(data.creditCards) : null;
+    const people = data.lentBorrowed.map((entry) => ({ entry, s: entrySummary(entry, today) }));
+    const lending = people.some(({ s }) => !s.settled)
+      ? {
+          overview: lendingOverview(data.lentBorrowed, today),
+          dueSoon: people
+            .filter(({ s }) => s.dueSoon)
+            .sort((a, b) => a.s.due!.days - b.s.due!.days)
+            .slice(0, 2),
+        }
+      : null;
     return {
       balances,
       total: Object.values(balances).reduce((s, b) => s + b, 0),
@@ -91,6 +107,7 @@ export default function Dashboard() {
       budgets,
       nextEmi,
       cards,
+      lending,
       recent: sortByDateDesc(data.transactions).slice(0, 6),
     };
   }, [data, key, start, end, today]);
@@ -394,8 +411,83 @@ export default function Dashboard() {
               )}
             </Link>
           )}
+          {view.lending && (
+            <section aria-labelledby="dash-lending" className="card p-4">
+              <div className="flex items-center gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                  <HandCoins className="size-5" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 id="dash-lending" className="truncate text-sm font-semibold text-ink">
+                    Lent & Borrowed
+                  </h2>
+                  <p className="text-xs text-muted">Not part of your balance</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-base font-bold text-ink tabular-nums">{formatINR(Math.abs(view.lending.overview.net))}</p>
+                  <p className="text-xs text-muted">{view.lending.overview.net >= 0 ? 'owed to you' : 'you owe'}</p>
+                </div>
+              </div>
+              <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <dt className="text-muted">Owed to you</dt>
+                  <dd className="font-semibold text-ink tabular-nums">{formatINR(view.lending.overview.owedToYou)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted">You owe</dt>
+                  <dd className="font-semibold text-ink tabular-nums">{formatINR(view.lending.overview.youOwe)}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted">Interest this month</dt>
+                  <dd className="font-semibold text-ink tabular-nums">{formatINR(view.lending.overview.interestThisMonth)}</dd>
+                </div>
+              </dl>
+              {view.lending.dueSoon.length > 0 && (
+                <ul className="mt-3 space-y-2.5 border-t border-line pt-3">
+                  {view.lending.dueSoon.map(({ entry, s }) => (
+                    <li key={entry.id} className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-medium text-ink">
+                          {entry.person} · {formatINR(s.due!.amount)}
+                        </p>
+                        <div className="mt-0.5">
+                          <LendingDue s={s} />
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="soft"
+                        onClick={() => setPaying({ entry, kind: s.due!.kind === 'interest' ? 'interest' : 'money' })}
+                      >
+                        {s.due!.kind === 'interest' ? 'Record interest' : 'Record payment'}
+                        <span className="sr-only"> for {entry.person}</span>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-3 flex items-center justify-between border-t border-line pt-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={Plus}
+                  className="-ml-3"
+                  aria-label="Add to Lent & Borrowed"
+                  onClick={() => setAddingPerson(true)}
+                >
+                  Add
+                </Button>
+                <Link to="/lent-borrowed" className="flex items-center gap-1 text-[13px] font-semibold text-primary hover:underline">
+                  View all <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+              </div>
+            </section>
+          )}
         </div>
       </div>
+
+      <PaymentForm entry={paying?.entry ?? null} kind={paying?.kind ?? 'interest'} onClose={() => setPaying(null)} />
+      <EntryForm open={addingPerson} onClose={() => setAddingPerson(false)} />
     </>
   );
 }

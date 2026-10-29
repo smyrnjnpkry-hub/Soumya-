@@ -1,6 +1,6 @@
 # Lent & Borrowed — design
 
-Date: 29 Oct 2026 · Status: approved in chat, section by section; built straight away at the user's request
+Date: 29 Oct 2026 · Status: built (approved in chat section by section; built straight away at the user's request)
 
 ## Goal
 
@@ -140,6 +140,17 @@ Not used by account balances, the Accounts screen's money in/out or statement du
   money-out transaction can be linked too.
 - Payments can be undone and deleted; settling can waive interest.
 - The separate "Settled" filter is folded into the Show settled switch; WhatsApp reminder added.
+
+## As built
+
+Built as above, with a few small additions found while building it:
+
+- Linked transactions show "Lent & Borrowed" instead of their category in lists, and the edit screen explains how much of
+  them counts (`lendingByTransaction`, `lendingNote`).
+- Editing a linked transaction re-derives its money-back part from the payment (capped at the new amount), so lowering and
+  then raising the amount can't leave the books out of step with the history.
+- "Don't add" is the default for money from before your first transaction (`isBeforeTracking`).
+- The sample people have no phone number, so the demo never opens WhatsApp to a real number.
 
 ## Not included
 

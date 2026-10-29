@@ -1,6 +1,6 @@
 import { countedAmount } from './finance';
 import { round2 } from './format';
-import type { Account, Category, Transaction, TransactionType } from './types';
+import type { Account, Category, LentBorrowed, Transaction, TransactionType } from './types';
 
 export interface TransactionFilters {
   query?: string;
@@ -15,6 +15,8 @@ export interface TransactionFilters {
 export interface Lookup {
   categories: Record<string, Category>;
   accounts: Record<string, Account>;
+  /** Transaction id → the person it belongs to in Lent & Borrowed */
+  lending?: Map<string, LentBorrowed>;
 }
 
 export function filterTransactions(transactions: Transaction[], filters: TransactionFilters, lookup: Lookup): Transaction[] {

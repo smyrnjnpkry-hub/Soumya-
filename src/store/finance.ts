@@ -5,7 +5,7 @@ import { todayISO } from '@/lib/dates';
 import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES } from '@/lib/defaults';
 import { round2 } from '@/lib/format';
 import { createId } from '@/lib/id';
-import { interestState, owedOn, type Draft as LendingDraft, type PaymentKind } from '@/lib/lending';
+import { interestState, lendingByTransaction, owedOn, type Draft as LendingDraft, type PaymentKind } from '@/lib/lending';
 import { advanceLoan } from '@/lib/loans';
 import { createSampleData } from '@/lib/seed';
 import { STATEMENT_ACCOUNT } from '@/lib/statement/types';
@@ -678,16 +678,18 @@ export const useFinance = create<FinanceState>()(
   ),
 );
 
-/** Id → entity maps for categories and accounts. */
+/** Id → entity maps for categories and accounts, and which transactions belong to Lent & Borrowed. */
 export function useLookups() {
   const categories = useFinance((s) => s.categories);
   const accounts = useFinance((s) => s.accounts);
+  const lentBorrowed = useFinance((s) => s.lentBorrowed);
   return useMemo(
     () => ({
       categories: Object.fromEntries(categories.map((c) => [c.id, c])),
       accounts: Object.fromEntries(accounts.map((a) => [a.id, a])),
+      lending: lendingByTransaction(lentBorrowed),
     }),
-    [categories, accounts],
+    [categories, accounts, lentBorrowed],
   );
 }
 

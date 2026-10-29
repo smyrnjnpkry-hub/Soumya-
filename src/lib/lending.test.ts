@@ -6,8 +6,11 @@ import {
   filterEntries,
   interestDueDates,
   interestState,
+  isBeforeTracking,
+  lendingByTransaction,
   lendingOverview,
   lendingToCSV,
+  lendingNote,
   owedOn,
   paymentDefaults,
   transactionCandidates,
@@ -521,5 +524,64 @@ describe('checkPaymentForm', () => {
       ok: true,
       payment: { interestPortion: 0, principalPortion: 0 },
     });
+  });
+});
+
+describe('lendingByTransaction', () => {
+  it('finds the person each linked transaction belongs to, as the start or a payment', () => {
+    const lent = withPayments(
+      { ...ramesh, startTransactionId: 't-start' },
+      pay('2026-10-12', 1000, 0, { linkedTransactionId: 't-interest' }),
+    );
+    const map = lendingByTransaction([lent, priya]);
+    expect([map.get('t-start')?.id, map.get('t-interest')?.id, map.get('t-other')]).toEqual(['ramesh', 'ramesh', undefined]);
+  });
+});
+
+describe('isBeforeTracking', () => {
+  const tx = (date: string): Transaction => ({ id: date, type: 'expense', amount: 10, date, category: 'food', account: 'cash', note: '' });
+
+  it('is true for a date before your first transaction', () => {
+    const history = [tx('2026-05-03'), tx('2026-04-01'), tx('2026-06-10')];
+    expect([isBeforeTracking('2026-03-31', history), isBeforeTracking('2026-04-01', history)]).toEqual([true, false]);
+  });
+
+  it('is never true without any transactions', () => {
+    expect(isBeforeTracking('2020-01-01', [])).toBe(false);
+  });
+});
+
+describe('lendingNote', () => {
+  const t = (type: 'income' | 'expense', amount: number, principalPart?: number): Transaction => ({
+    id: 't',
+    type,
+    amount,
+    date: '2026-10-12',
+    category: 'other',
+    account: 'bank',
+    note: '',
+    ...(principalPart ? { principalPart } : {}),
+  });
+
+  it.each([
+    ['lending', ramesh, t('expense', 20000, 20000), '₹20,000 lent to Ramesh Kumar — not counted as spending.'],
+    [
+      'being paid back with interest',
+      ramesh,
+      t('income', 5200, 5000),
+      '₹5,000 of this is money back from Ramesh Kumar — only ₹200 counts as income.',
+    ],
+    ['interest received', ramesh, t('income', 750), 'Interest from Ramesh Kumar — counted as income.'],
+    ['borrowing', priya, t('income', 10000, 10000), '₹10,000 borrowed from Priya — not counted as income.'],
+    ['paying back', priya, t('expense', 4000, 4000), '₹4,000 paid back to Priya — not counted as spending.'],
+    [
+      'paying back with interest',
+      priya,
+      t('expense', 4300, 4000),
+      '₹4,000 of this is money paid back to Priya — only ₹300 counts as spending.',
+    ],
+    ['interest paid', priya, t('expense', 300), 'Interest to Priya — counted as spending.'],
+  ] as const)('explains %s', (_, entry, transaction, expected) => {
+    expect(lendingNote(transaction, entry)).toBe(expected);
   });
 });

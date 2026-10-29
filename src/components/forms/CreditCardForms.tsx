@@ -9,7 +9,7 @@ import { toast } from '@/store/toast';
 import { describe } from '../transactions/TransactionRow';
 import { Amount, CategoryIcon } from '../ui/Bits';
 import { Button } from '../ui/Button';
-import { Chip, Field, Input, MoneyInput, sanitizeAmount, Select } from '../ui/Form';
+import { Chip, choiceRadio, choiceRow, Field, Input, MoneyInput, sanitizeAmount, Select } from '../ui/Form';
 import { ConfirmDialog, Modal } from '../ui/Modal';
 
 export function CardForm({ open, onClose, card }: { open: boolean; onClose: () => void; card?: CreditCard }) {
@@ -162,10 +162,6 @@ export function RecordPaymentForm({ card, onClose }: { card: CreditCard | null; 
 /** 'tx:<id>' links that transaction; 'new' adds an expense; 'card-only' just updates the card. */
 type PaymentChoice = `tx:${string}` | 'new' | 'card-only';
 
-const radioRow =
-  'flex cursor-pointer items-start gap-3 rounded-xl border border-line p-3 transition has-[:checked]:border-primary has-[:checked]:bg-primary-soft/50';
-const radio = 'mt-0.5 size-4 shrink-0 accent-[var(--primary-fill)]';
-
 function PaymentFields({ card, onClose }: { card: CreditCard; onClose: () => void }) {
   const cards = useFinance((s) => s.creditCards);
   const transactions = useFinance((s) => s.transactions);
@@ -260,11 +256,11 @@ function PaymentFields({ card, onClose }: { card: CreditCard; onClose: () => voi
         <legend className="label">Already in your transactions?</legend>
         <p className="text-xs text-muted">Linking uses the payment you already have, so it’s only counted once.</p>
         {candidates.map((t, i) => (
-          <label key={t.id} className={radioRow}>
+          <label key={t.id} className={choiceRow}>
             <input
               type="radio"
               name="pay-choice"
-              className={radio}
+              className={choiceRadio}
               checked={choice === `tx:${t.id}`}
               onChange={() => setPicked(`tx:${t.id}`)}
             />
@@ -291,8 +287,8 @@ function PaymentFields({ card, onClose }: { card: CreditCard; onClose: () => voi
           </p>
         )}
         {accounts.length > 0 && (
-          <label className={radioRow}>
-            <input type="radio" name="pay-choice" className={radio} checked={choice === 'new'} onChange={() => setPicked('new')} />
+          <label className={choiceRow}>
+            <input type="radio" name="pay-choice" className={choiceRadio} checked={choice === 'new'} onChange={() => setPicked('new')} />
             <span className="min-w-0 flex-1 text-sm">
               <span className="block font-medium text-ink">Add it as a new expense</span>
               <span className="block text-xs text-muted">
@@ -313,11 +309,11 @@ function PaymentFields({ card, onClose }: { card: CreditCard; onClose: () => voi
             </Select>
           </Field>
         )}
-        <label className={radioRow}>
+        <label className={choiceRow}>
           <input
             type="radio"
             name="pay-choice"
-            className={radio}
+            className={choiceRadio}
             checked={choice === 'card-only'}
             onChange={() => setPicked('card-only')}
           />

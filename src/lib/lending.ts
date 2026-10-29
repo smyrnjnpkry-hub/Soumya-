@@ -198,6 +198,38 @@ export function linkedTransactionIds(entries: LentBorrowed[]): Set<string> {
   return ids;
 }
 
+/** The person each linked transaction belongs to, for labelling transaction lists. */
+export function lendingByTransaction(entries: LentBorrowed[]): Map<string, LentBorrowed> {
+  const byTransaction = new Map<string, LentBorrowed>();
+  for (const entry of entries) {
+    if (entry.startTransactionId) byTransaction.set(entry.startTransactionId, entry);
+    for (const p of entry.payments) if (p.linkedTransactionId) byTransaction.set(p.linkedTransactionId, entry);
+  }
+  return byTransaction;
+}
+
+/** Explains, on a linked transaction, how much of it counts as income or spending. */
+export function lendingNote(t: Transaction, entry: LentBorrowed): string {
+  const counts = t.type === 'income' ? 'income' : 'spending';
+  const part = Math.min(t.principalPart ?? 0, t.amount);
+  const lent = entry.direction === 'lent';
+  if (part <= 0) return `Interest ${t.type === 'income' ? 'from' : 'to'} ${entry.person} — counted as ${counts}.`;
+  const what =
+    lent && t.type === 'expense'
+      ? ['lent to', 'money lent to']
+      : lent
+        ? ['paid back by', 'money back from']
+        : t.type === 'income'
+          ? ['borrowed from', 'money borrowed from']
+          : ['paid back to', 'money paid back to'];
+  if (part >= t.amount) return `${formatINR(t.amount)} ${what[0]} ${entry.person} — not counted as ${counts}.`;
+  return `${formatINR(part)} of this is ${what[1]} ${entry.person} — only ${formatINR(round2(t.amount - part))} counts as ${counts}.`;
+}
+
+/** A date before your first transaction: adding money from then would upset balances that already include it. */
+export const isBeforeTracking = (date: string, transactions: Transaction[]) =>
+  transactions.length > 0 && transactions.every((t) => date < t.date);
+
 /**
  * Transactions that may already be this money moving: money in or out (never a transfer) of about the same amount (₹1
  * or 1%) within 5 days, not used by any entry or linked to a credit card. Closest amount first, then closest date.
