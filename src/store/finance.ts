@@ -144,6 +144,13 @@ const withCardLink = (t: Transaction, link: CardLink): Transaction => {
 const setCardLink = (transactions: Transaction[], id: string, link: CardLink) =>
   transactions.map((t) => (t.id === id ? withCardLink(t, link) : t));
 
+/** Where a card payment added as a new expense goes: Bills & Utilities, or the closest category left. */
+export const cardPaymentCategory = (categories: Category[]) =>
+  categories.find((c) => c.id === 'bills') ??
+  categories.find((c) => c.type === 'expense' && /bill|utilit/i.test(c.name)) ??
+  categories.find((c) => c.id === 'other-expense') ??
+  categories.find((c) => c.type === 'expense');
+
 let askedForPersistence = false;
 
 /** Where the saved data lives (one JSON document). */
@@ -319,11 +326,7 @@ export const useFinance = create<FinanceState>()(
           receipt.linked = { transactionId: existing.id, previous: existing.creditCardId };
           transactions = setCardLink(transactions, existing.id, id);
         } else if (payment.accountId) {
-          const category =
-            s.categories.find((c) => c.id === 'bills') ??
-            s.categories.find((c) => c.type === 'expense' && /bill|utilit/i.test(c.name)) ??
-            s.categories.find((c) => c.id === 'other-expense') ??
-            s.categories.find((c) => c.type === 'expense');
+          const category = cardPaymentCategory(s.categories);
           const expense: Transaction = {
             id: createId(),
             type: 'expense',

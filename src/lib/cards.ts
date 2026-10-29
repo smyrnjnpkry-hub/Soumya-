@@ -21,9 +21,13 @@ export const USAGE_CRITICAL = 0.7;
 /** Last 4 digits written as part of a masked card number: ••4417, XXXX4417, **4417, "ending 4417", "card 4417". */
 const MASKED_LAST4 = /(?:•{2,}|[x*]{2,}|\bending(?:\s+in)?\s+|\bcard\s+(?:no\.?\s*)?)(\d{4})(?!\d)/gi;
 const CARD_PAYMENT = /\bcredit\s*card\b|\bcc\s*(?:bill|payment|pmt|autopay)\b|\bcard\s*(?:bill|payment|dues?|autopay)\b/i;
+const LAST4 = /^\d{4}$/;
 /** Shorter names ("HDFC", "SBI") would match far too much. */
 const MIN_NAME_LENGTH = 5;
 const CANDIDATE_DAYS = 5;
+
+/** "HDFC Millennia ••4417", or just the name. */
+export const cardLabel = (card: Pick<CreditCard, 'name' | 'last4'>) => (card.last4 ? `${card.name} ••${card.last4}` : card.name);
 
 /** A note that reads like paying a credit card bill, without saying which card. */
 export const isCardPayment = (note: string) => CARD_PAYMENT.test(note);
@@ -100,6 +104,71 @@ export function paymentCandidates(
     }))
     .sort((a, b) => a.ours - b.ours || a.amountGap - b.amountGap || a.dayGap - b.dayGap)
     .map(({ t }) => t);
+}
+
+/**
+ * Expenses you could link to the card by hand: any not already under it, newest first. A search matches the note or
+ * the amount ("23,480" and "₹23480" both find 23480).
+ */
+export function linkCandidates(card: CreditCard, cards: CreditCard[], transactions: Transaction[], query: string): Transaction[] {
+  const text = query.trim().toLowerCase();
+  const digits = text.replace(/[^\d.]/g, '');
+  return transactions
+    .filter((t) => t.type === 'expense' && cardFor(t, cards)?.id !== card.id)
+    .filter((t) => !text || t.note.toLowerCase().includes(text) || (digits !== '' && String(t.amount).includes(digits)))
+    .sort(newestFirst);
+}
+
+/** The add/edit card form's fields, as typed. */
+export interface CardFormValues {
+  name: string;
+  last4: string;
+  limit: string;
+  outstanding: string;
+  minDue: string;
+  dueDate: string;
+  interestRate: string;
+}
+
+export type CardFormResult =
+  { ok: true; draft: Omit<CreditCard, 'id'> } | { ok: false; errors: Partial<Record<keyof CardFormValues, string>> };
+
+/** More than 60% a year (5% a month) is almost certainly a typo. */
+const MAX_INTEREST = 60;
+
+const amountOf = (raw: string) => (raw.trim() === '' ? NaN : Number(raw));
+
+export function checkCardForm(values: CardFormValues): CardFormResult {
+  const name = values.name.trim();
+  const last4 = values.last4.trim();
+  const limit = amountOf(values.limit);
+  const outstanding = amountOf(values.outstanding);
+  const minDue = amountOf(values.minDue);
+  const interestRate = amountOf(values.interestRate);
+
+  const errors: Partial<Record<keyof CardFormValues, string>> = {};
+  if (!name) errors.name = 'Name the card, e.g. “HDFC Millennia”';
+  if (last4 && !LAST4.test(last4)) errors.last4 = 'Enter exactly 4 digits, or leave it empty';
+  if (!(limit > 0)) errors.limit = 'Enter the credit limit';
+  if (!(outstanding >= 0)) errors.outstanding = 'Enter what you owe now (0 if nothing)';
+  if (!(minDue >= 0)) errors.minDue = 'Enter the minimum due (0 if it’s paid)';
+  else if (outstanding >= 0 && minDue > outstanding) errors.minDue = 'The minimum due can’t be more than what you owe';
+  if (!values.dueDate) errors.dueDate = 'Pick the due date';
+  if (!(interestRate >= 0 && interestRate <= MAX_INTEREST)) errors.interestRate = `Enter the yearly rate, from 0 to ${MAX_INTEREST}%`;
+  if (Object.keys(errors).length) return { ok: false, errors };
+
+  return {
+    ok: true,
+    draft: {
+      name,
+      ...(last4 ? { last4 } : {}),
+      limit: round2(limit),
+      outstanding: round2(outstanding),
+      minDue: round2(minDue),
+      dueDate: values.dueDate,
+      interestRate,
+    },
+  };
 }
 
 export interface CardSummary {

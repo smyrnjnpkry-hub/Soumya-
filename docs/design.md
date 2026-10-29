@@ -17,28 +17,31 @@ pages/  ──uses──▶  components/  ──uses──▶  lib/ (pure functi
 - **`src/lib`** holds every calculation as pure functions with Vitest tests: formatting (`₹12,34,567`, `₹1.5L`), dates, balances,
   breakdowns, budgets, loans/EMI, CSV, backup validation, chart scales, sample data and the insights engine. Screens never do
   money maths inline beyond simple sums.
-- **`src/store/finance.ts`** is a single Zustand store with the six collections and their actions (add/update/delete, budget copy,
-  EMI payment, goal contributions, undo, start fresh). It is persisted as one JSON document.
+- **`src/store/finance.ts`** is a single Zustand store with the seven collections and their actions (add/update/delete, budget copy,
+  EMI and card payments, goal contributions, undo, start fresh). It is persisted as one JSON document.
 - **Pages** are lazy-loaded routes; the Dashboard is in the main chunk because it's the first screen.
 
 ## Data model
 
-As specified, with three small, deliberate extensions:
+As specified, with three small, deliberate extensions — plus credit cards, added later:
 
-| Entity      | Fields                                                             | Notes                                                                                                                                                                                                                  |
-| ----------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Transaction | `id, type, amount, date, category, account, note` + `toAccount?`   | `type` also allows **`transfer`** (with `toAccount`) so ATM withdrawals and UPI top-ups keep account balances correct without counting as income/expense. `amount` is always positive. `date` is a local `YYYY-MM-DD`. |
-| Account     | `id, name, type, balance`                                          | `type` is `cash` / `bank` / `upi`. `balance` is the **opening** balance; the current balance is derived from transactions.                                                                                             |
-| Category    | `id, name, icon, color, type`                                      | `icon` is a key into a curated Lucide set; `color` is a **palette key** (`blue`, `orange` …), resolved to a CSS variable so it adapts to dark mode.                                                                    |
-| Budget      | `id, category, month, limit`                                       | One per category per month (`YYYY-MM`).                                                                                                                                                                                |
-| Goal        | `id, name, target, current, deadline`                              |                                                                                                                                                                                                                        |
-| Loan        | `id, name, principal, emi, interestRate, remainingTenure, nextDue` | Outstanding principal = present value of the remaining EMIs, so progress needs no extra fields. "Mark EMI paid" decrements the tenure, moves `nextDue` a month and can record the EMI as an expense.                   |
+| Entity      | Fields                                                                | Notes                                                                                                                                                                                                                  |
+| ----------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Transaction | `id, type, amount, date, category, account, note` + `toAccount?`      | `type` also allows **`transfer`** (with `toAccount`) so ATM withdrawals and UPI top-ups keep account balances correct without counting as income/expense. `amount` is always positive. `date` is a local `YYYY-MM-DD`. |
+| Account     | `id, name, type, balance`                                             | `type` is `cash` / `bank` / `upi`. `balance` is the **opening** balance; the current balance is derived from transactions.                                                                                             |
+| Category    | `id, name, icon, color, type`                                         | `icon` is a key into a curated Lucide set; `color` is a **palette key** (`blue`, `orange` …), resolved to a CSS variable so it adapts to dark mode.                                                                    |
+| Budget      | `id, category, month, limit`                                          | One per category per month (`YYYY-MM`).                                                                                                                                                                                |
+| Goal        | `id, name, target, current, deadline`                                 |                                                                                                                                                                                                                        |
+| Loan        | `id, name, principal, emi, interestRate, remainingTenure, nextDue`    | Outstanding principal = present value of the remaining EMIs, so progress needs no extra fields. "Mark EMI paid" decrements the tenure, moves `nextDue` a month and can record the EMI as an expense.                   |
+| CreditCard  | `id, name, limit, outstanding, minDue, dueDate, interestRate, last4?` | Numbers you keep up to date, like a loan's; recording a payment lowers `outstanding` and `minDue`. A transaction's optional `creditCardId` links it to a card (`null` = "not a card payment").                         |
 
 ## Storage, offline and privacy
 
 - Zustand `persist` writes to IndexedDB through a small adapter that falls back to localStorage if IndexedDB is unavailable.
   The UI waits for hydration before rendering so saved data never flashes behind defaults.
 - The app asks the browser for persistent storage after the first transaction (silent in Chromium).
+- The saved document is versioned. Version 2 added credit cards: data saved before then gets an empty card list (or the
+  sample cards while the sample is showing), and a missing list is never filled from the initial state, which is the sample.
 - **Backup/restore** is a versioned JSON file. Restore validates every record and copies known fields only; an invalid file is
   rejected whole with a message rather than half-imported.
 - CSV export is RFC 4180 with a UTF-8 BOM (Excel shows ₹ correctly) and neutralises formula-like text (`=HYPERLINK(…)`).
@@ -100,6 +103,24 @@ layout quirks, plus a JSON file of the rows it contains; `sample.test.ts` runs t
 every row comes back exactly. The importer was also checked against a real multi-page HDFC statement (not in the
 repository): every row read, matching the bank's totals to the paisa.
 
+## Credit cards (`src/lib/cards.ts`)
+
+A separate tracker, like Loans, rather than cards as accounts: purchases on the card aren't recorded one by one, so the bill
+payment from the bank (typed in, or imported as an expense under Bills & Utilities) is the spending. The card screen only
+shows which of your transactions belong to which card; it never creates one unless you ask.
+
+- **Matching**, in order: a link made by hand; `null` (marked "not a card payment"); the card's last 4 written as part of a
+  masked number (`••4417`, `XX4417`, `**4417`, `ending 4417`, `card 4417` — never a bare 4-digit number, so _Salary for Mar
+  2026_ can't match a card ending 2026); the card's full name (5+ characters, so "HDFC" alone matches nothing); and, with a
+  single card, any note that reads like a card bill. "EMI" is never used, so loan EMIs stay out. A tie matches nothing, and
+  card-bill-looking payments no card claims are listed for linking.
+- **Recording a payment** offers expenses of about the same amount (₹1 or 1%) within 5 days — never transfers such as ATM
+  withdrawals, another card's payments or ones already linked — so linking adds nothing to your totals. Adding a new expense
+  or only updating the card are the other choices; all three undo.
+- **Maths:** usage = owed ÷ limit (blue under 30%, amber to 70%, red above, always with the %); status from the minimum due and
+  due date; the cost of paying only the minimum ≈ (owed − minimum) × yearly rate ÷ 12, shown rounded as an estimate.
+- Two insights: a card's minimum due within 7 days or overdue, and overall usage at 30% or more.
+
 ## Visual design and accessibility
 
 - Semantic colour tokens (`--canvas`, `--surface`, `--ink`, `--income`, `--expense` …) defined once for light and dark; Tailwind
@@ -119,9 +140,13 @@ repository): every row read, matching the bank's totals to the paisa.
 - Manual end-to-end runs with Playwright (not committed, to keep the project light): add/edit/delete/undo, transfers and balances,
   persistence across reloads, budgets, goals, loans + EMI payment, custom categories, accounts, theme persistence, CSV export,
   backup → erase → restore, invalid backup rejection, full offline use with the service worker, and sub-folder hosting;
-  statement import with the sample, a password-protected copy, a non-PDF file, undo, re-import duplicates and offline use.
+  statement import with the sample, a password-protected copy, a non-PDF file, undo, re-import duplicates and offline use;
+  credit cards: matching on the sample, recording payments by linking and as new expenses with undo, unlinking and linking
+  by hand, unmatched payments, add/edit/delete, the dashboard card, upgrading data saved by the previous version, axe in both
+  themes and 360px screens.
 
 ## Possible next steps
 
 Recurring transactions and reminders, multiple tabs editing at once (BroadcastChannel sync), optional encrypted cloud sync,
-bank SMS import and CSV/Excel statement import, budget rollover, and per-goal transactions.
+bank SMS import and CSV/Excel statement import, budget rollover, per-goal transactions, and credit-card statement import
+(card purchases one by one).

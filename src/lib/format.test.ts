@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayLabel, formatDate, formatINR, formatMonth, formatPercent } from './format';
+import { dayLabel, formatDate, formatINR, formatMonth, formatPercent, roughly } from './format';
 
 describe('formatINR', () => {
   it('groups digits the Indian way (lakhs and crores)', () => {
@@ -71,5 +71,17 @@ describe('dayLabel', () => {
   it('uses weekday and date otherwise, adding the year only when it differs', () => {
     expect(dayLabel('2026-10-20', '2026-10-28')).toBe('Tue, 20 Oct');
     expect(dayLabel('2025-12-31', '2026-10-28')).toBe('Wed, 31 Dec 2025');
+  });
+});
+
+describe('roughly', () => {
+  it.each([
+    [780.5, 780],
+    [207.2, 210],
+    [99.6, 100],
+    [64.4, 64],
+    [0.4, 0],
+  ])('%s → about %s (nearest ₹10 from ₹100)', (n, expected) => {
+    expect(roughly(n)).toBe(expected);
   });
 });

@@ -2,6 +2,7 @@ import {
   Activity,
   ArrowLeftRight,
   ChartPie,
+  CreditCard,
   FileUp,
   Gauge,
   Landmark,
@@ -36,6 +37,7 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
       { to: '/budget', label: 'Budget', icon: Gauge, description: 'Monthly limits per category' },
       { to: '/goals', label: 'Goals', icon: Target, description: 'Save towards what matters' },
       { to: '/loans', label: 'Loans & EMI', icon: Landmark, description: 'EMIs, interest and payoff' },
+      { to: '/credit-cards', label: 'Credit Cards', icon: CreditCard, description: 'Limits, dues and card bills' },
     ],
   },
   {

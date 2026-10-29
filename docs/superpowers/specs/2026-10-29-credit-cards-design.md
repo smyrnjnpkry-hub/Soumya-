@@ -1,6 +1,6 @@
 # Credit Cards — design
 
-Date: 29 Oct 2026 · Status: proposed, waiting for review
+Date: 29 Oct 2026 · Status: built (29 Oct 2026)
 
 ## Goal
 
@@ -158,6 +158,17 @@ more (warning: keeping it under 30% helps your credit score).
 - Seed and insights tests for the new sample data and rules.
 - Browser: add/edit/delete a card, record a payment by linking and as new, unlink/link, dashboard card, accessibility
   (axe, both themes), 360px screens, offline.
+
+## As built
+
+Built as above, with a few small additions found while building it:
+
+- `linkCardTransaction` also takes `undefined` (back to automatic matching) and returns the previous link, so every link
+  change has an **Undo**.
+- The unmatched list also has **Not a card payment**, for card-looking notes that aren't card bills.
+- The "Link a transaction" picker searches notes and amounts and says when a transaction is now under another card.
+- The interest estimate is shown rounded ("about ₹780"); the card form's checks and the picker's list are unit-tested
+  (`checkCardForm`, `linkCandidates`).
 
 ## Not included
 

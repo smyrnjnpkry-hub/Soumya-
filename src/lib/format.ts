@@ -38,6 +38,12 @@ export function formatINR(amount: number, { compact = false, sign = false } = {}
   return body;
 }
 
+/** An estimate to show with "about": whole rupees, and the nearest ₹10 from ₹100 up (780.5 → 780). */
+export function roughly(amount: number): number {
+  const whole = Math.round(amount);
+  return whole >= 100 ? Math.round(amount / 10) * 10 : whole;
+}
+
 /** 0.183 → "18%". */
 export function formatPercent(ratio: number, { sign = false } = {}): string {
   const pct = Math.round(ratio * 100);

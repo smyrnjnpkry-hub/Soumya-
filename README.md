@@ -1,28 +1,29 @@
 # FinTrack — personal finance tracker (₹)
 
 A clean, modern personal finance app that runs entirely in your browser. Track income and expenses across cash, bank and UPI,
-set budgets, save towards goals, follow your loans and EMIs, and get plain-language insights about your money — all in Indian
+set budgets, save towards goals, follow your loans, EMIs and credit cards, and get plain-language insights about your money — all in Indian
 Rupees, all offline, and all private: **your data never leaves your device**.
 
 It is a Progressive Web App (PWA), so you can install it on your phone or computer like a normal app.
 
 ## Features
 
-| Screen           | What it does                                                                                                                                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Dashboard**    | Total balance across accounts, this month's income and expenses with change vs last month, savings rate, spending by category, budget snapshot, recent transactions, top insights and the next EMI |
-| **Transactions** | Search, filter by type / period / category / account / dates, grouped by day with daily totals, quick add                                                                                          |
-| **Add / edit**   | Expense, income or **transfer** between accounts; category grid ordered by how often you use it; Today / Yesterday shortcuts; "Save & add another"; delete with **Undo**                           |
-| **Budget**       | Monthly limits per category with progress bars, money left, "safe to spend per day", unbudgeted spending, copy last month's budgets                                                                |
-| **Goals**        | Savings goals with circular progress, the monthly amount needed to hit the deadline, add or withdraw money                                                                                         |
-| **Cash flow**    | Income vs expenses over 6 or 12 months, net cash flow, best/toughest month and a month-by-month table                                                                                              |
-| **Insights**     | Rule-based observations (see below), cash-flow health, spending pace vs last month, category cards with mini charts                                                                                |
-| **Categories**   | Where money goes (or comes from) for any period, with a 6-month trend and largest transactions per category; custom categories with icons and colours                                              |
-| **Loans & EMI**  | Outstanding principal, interest left, payoff date, due/overdue reminders, "Mark EMI paid" (optionally recorded as an expense), EMI calculator                                                      |
-| **Reports**      | Pie charts for expenses and income, income vs expenses, monthly trend, spending by weekday, largest expenses, CSV export for any period                                                            |
-| **Accounts**     | Cash, bank and UPI balances with this month's money in and out                                                                                                                                     |
-| **Import**       | Add months of transactions from your bank's **PDF statement**: suggested categories, duplicates skipped, checked against the bank's own totals, undo straight after (see below)                    |
-| **Settings**     | Light / dark / system theme, install the app, export CSV, full backup and restore, sample data, erase everything                                                                                   |
+| Screen           | What it does                                                                                                                                                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dashboard**    | Total balance across accounts, this month's income and expenses with change vs last month, savings rate, spending by category, budget snapshot, recent transactions, top insights, the next EMI and what's owed on credit cards     |
+| **Transactions** | Search, filter by type / period / category / account / dates, grouped by day with daily totals, quick add                                                                                                                           |
+| **Add / edit**   | Expense, income or **transfer** between accounts; category grid ordered by how often you use it; Today / Yesterday shortcuts; "Save & add another"; delete with **Undo**                                                            |
+| **Budget**       | Monthly limits per category with progress bars, money left, "safe to spend per day", unbudgeted spending, copy last month's budgets                                                                                                 |
+| **Goals**        | Savings goals with circular progress, the monthly amount needed to hit the deadline, add or withdraw money                                                                                                                          |
+| **Cash flow**    | Income vs expenses over 6 or 12 months, net cash flow, best/toughest month and a month-by-month table                                                                                                                               |
+| **Insights**     | Rule-based observations (see below), cash-flow health, spending pace vs last month, category cards with mini charts                                                                                                                 |
+| **Categories**   | Where money goes (or comes from) for any period, with a 6-month trend and largest transactions per category; custom categories with icons and colours                                                                               |
+| **Loans & EMI**  | Outstanding principal, interest left, payoff date, due/overdue reminders, "Mark EMI paid" (optionally recorded as an expense), EMI calculator                                                                                       |
+| **Credit cards** | Each card's limit, what you owe, the minimum due and when, how much of the limit is used and what paying only the minimum costs; card bills already in your transactions show under the right card, never counted twice (see below) |
+| **Reports**      | Pie charts for expenses and income, income vs expenses, monthly trend, spending by weekday, largest expenses, CSV export for any period                                                                                             |
+| **Accounts**     | Cash, bank and UPI balances with this month's money in and out                                                                                                                                                                      |
+| **Import**       | Add months of transactions from your bank's **PDF statement**: suggested categories, duplicates skipped, checked against the bank's own totals, undo straight after (see below)                                                     |
+| **Settings**     | Light / dark / system theme, install the app, export CSV, full backup and restore, sample data, erase everything                                                                                                                    |
 
 ### Smart insights (no AI service needed)
 
@@ -38,6 +39,7 @@ last month** (1–20 Oct vs 1–20 Sep), so a half-finished month is never judge
 - _Net cash flow has been positive for the last 6 months_ · _Your balance covers 5.0 months of expenses_
 - _You've stayed under budget in 6 categories_ · _Food & Dining is over budget by ₹1,830_
 - _Save ₹8,500/month to reach New laptop by Feb 2027_ · _Car loan EMI of ₹12,450 due in 5 days_
+- _HDFC Millennia minimum of ₹1,180 due in 5 days_ · _Your cards are 35% used_ (keeping it under 30% helps your credit score)
 - _You spend 2.1× more per day on weekends_
 
 The month-end projection scales your spending by last month's pace (so rent on the 3rd doesn't distort it), falling back to a
@@ -61,6 +63,20 @@ The PDF is read **on your device** — it is never uploaded, and only the last f
 It's built and tested on HDFC Bank statements; statements from other banks with Date / Narration / Withdrawal / Deposit /
 Balance columns usually work too. Scanned or photographed statements can't be read (they have no text). Next time you
 import, categories you chose before are remembered.
+
+### Credit cards
+
+**Credit Cards** (under Loans & EMI in the menu) works like the loans screen: add each card with its limit, what you owe,
+the minimum due, the due date and the interest rate (card papers often quote it per month — 3.5% a month is 42% a year).
+
+- **Card bills you already have are matched for you.** A payment whose note shows the card's last 4 digits as part of a
+  card number (_Credit card bill ••4417_, _XXXX4417_, _card ending 4417_) or the card's full name goes under that card.
+  With a single card, any payment that reads like a card bill does. Anything that could be either of two cards is listed
+  at the top so you can pick, and **Not this card** or **Link a transaction** fixes a wrong or missed match.
+- **Nothing is counted twice.** A card bill paid from your bank is already spending, so **Record payment** offers to link
+  that transaction (it finds ones of about the same amount within 5 days) instead of adding another. You can also add the
+  payment as a new expense, or just update the card if you'll import the statement later. Every step can be undone.
+- What you owe on cards is shown separately: your total balance, income, spending and budgets don't change.
 
 ## Run it on your computer
 
@@ -131,7 +147,7 @@ vite-plugin-pwa (Workbox) · pdf.js (statement import) · date-fns · Vitest.
 ```
 src/
   lib/          Pure, unit-tested logic: money/date formatting, balances, budgets, loans/EMI maths,
-                CSV, backup validation, chart scales, sample data and the insights engine
+                credit card matching, CSV, backup validation, chart scales, sample data and the insights engine
   lib/statement/  Bank statement import: PDF text → transactions, categories, duplicates
   store/        Zustand stores: finance data (persisted to IndexedDB), theme, toasts, install prompt
   components/   UI kit, charts, forms, layout (sidebar, bottom nav), transaction rows, insight items

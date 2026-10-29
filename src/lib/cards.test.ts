@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   cardActivity,
   cardFor,
+  cardLabel,
   cardsOverview,
   cardSummary,
+  checkCardForm,
   isCardPayment,
+  linkCandidates,
   paymentCandidates,
   unmatchedCardPayments,
   usageLevel,
@@ -229,5 +232,90 @@ describe('usageLevel', () => {
     [0.7, 'over'],
   ] as const)('%s → %s', (usage, level) => {
     expect(usageLevel(usage)).toBe(level);
+  });
+});
+
+describe('linkCandidates', () => {
+  it('offers expenses not already under this card, newest first, including another card’s and ones marked not a card payment', () => {
+    const mine = tx('Credit card bill ••4417', { date: '2026-10-03' });
+    const sbiBill = tx('Credit card bill ••9023', { date: '2026-10-05' });
+    const dismissed = tx('Card bill', { date: '2026-10-07', creditCardId: null });
+    const rent = tx('Rent', { date: '2026-10-01' });
+    const salary = tx('Salary', { type: 'income', category: 'salary', date: '2026-10-09' });
+    expect(linkCandidates(hdfc, both, [mine, sbiBill, dismissed, rent, salary], '').map((t) => t.id)).toEqual([
+      dismissed.id,
+      sbiBill.id,
+      rent.id,
+    ]);
+  });
+
+  it.each([
+    ['neft', 'note'],
+    ['  NEFT ', 'note, ignoring case and spaces'],
+    ['23,480', 'amount, with a comma'],
+    ['₹23480', 'amount, with the rupee sign'],
+  ])('finds a transaction by %s (%s)', (query) => {
+    const rent = tx('House rent', { amount: 18000 });
+    const neft = tx('NEFT to card', { amount: 23480 });
+    expect(linkCandidates(hdfc, both, [rent, neft], query).map((t) => t.id)).toEqual([neft.id]);
+  });
+});
+
+describe('checkCardForm', () => {
+  const valid = {
+    name: '  HDFC Millennia ',
+    last4: '4417',
+    limit: '150000',
+    outstanding: '23480.5',
+    minDue: '1180',
+    dueDate: '2026-11-03',
+    interestRate: '42',
+  };
+
+  it('turns valid input into a card', () => {
+    expect(checkCardForm(valid)).toEqual({
+      ok: true,
+      draft: {
+        name: 'HDFC Millennia',
+        last4: '4417',
+        limit: 150000,
+        outstanding: 23480.5,
+        minDue: 1180,
+        dueDate: '2026-11-03',
+        interestRate: 42,
+      },
+    });
+  });
+
+  it('leaves out last 4 digits that weren’t given, and accepts nothing owed at 0% interest', () => {
+    expect(checkCardForm({ ...valid, last4: '', outstanding: '0', minDue: '0', interestRate: '0' })).toEqual({
+      ok: true,
+      draft: { name: 'HDFC Millennia', limit: 150000, outstanding: 0, minDue: 0, dueDate: '2026-11-03', interestRate: 0 },
+    });
+  });
+
+  it.each([
+    ['name', { name: '   ' }],
+    ['last4', { last4: '441' }],
+    ['last4', { last4: '44a7' }],
+    ['limit', { limit: '0' }],
+    ['limit', { limit: '' }],
+    ['outstanding', { outstanding: '' }],
+    ['minDue', { minDue: '' }],
+    ['minDue', { minDue: '23481' }],
+    ['dueDate', { dueDate: '' }],
+    ['interestRate', { interestRate: '' }],
+    ['interestRate', { interestRate: '61' }],
+  ] as const)('explains a problem with %s: %o', (field, change) => {
+    const result = checkCardForm({ ...valid, ...change });
+    expect(result.ok).toBe(false);
+    expect(!result.ok && Object.keys(result.errors)).toEqual([field]);
+  });
+});
+
+describe('cardLabel', () => {
+  it('adds the last 4 digits when the card has them', () => {
+    expect(cardLabel(hdfc)).toBe('HDFC Millennia ••4417');
+    expect(cardLabel({ ...hdfc, last4: undefined })).toBe('HDFC Millennia');
   });
 });

@@ -1,6 +1,7 @@
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, Landmark, PiggyBank, Plus, Sparkles, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, CreditCard, Landmark, PiggyBank, Plus, Sparkles, X } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router';
+import { CardStatus } from '@/components/cards/CardStatus';
 import { SpendingDonut } from '@/components/charts/Charts';
 import { InsightItem } from '@/components/insights/InsightItem';
 import { ACCOUNT_ICONS, BUDGET_COLORS } from '@/components/meta';
@@ -9,6 +10,7 @@ import { EmptyState, StatusPill } from '@/components/ui/Bits';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card, CardHeader, PageHeader } from '@/components/ui/Card';
 import { ProgressBar, ProgressRing } from '@/components/ui/Progress';
+import { cardsOverview, cardSummary, usageLevel } from '@/lib/cards';
 import { daysBetween, monthBounds, monthKey, todayISO } from '@/lib/dates';
 import { accountBalances, budgetProgress, categoryBreakdown, foldBreakdown, monthTotals } from '@/lib/finance';
 import { formatDate, formatINR, formatMonth, formatPercent } from '@/lib/format';
@@ -79,6 +81,7 @@ export default function Dashboard() {
     const report = buildInsights(data, today);
     const budgets = budgetProgress(data.budgets, data.transactions, key);
     const nextEmi = data.loans.filter((l) => l.remainingTenure > 0).sort((a, b) => a.nextDue.localeCompare(b.nextDue))[0];
+    const cards = data.creditCards.length ? cardsOverview(data.creditCards) : null;
     return {
       balances,
       total: Object.values(balances).reduce((s, b) => s + b, 0),
@@ -87,6 +90,7 @@ export default function Dashboard() {
       report,
       budgets,
       nextEmi,
+      cards,
       recent: sortByDateDesc(data.transactions).slice(0, 6),
     };
   }, [data, key, start, end, today]);
@@ -350,6 +354,44 @@ export default function Dashboard() {
                 </p>
               </div>
               <span className="text-sm font-semibold text-ink tabular-nums">{formatINR(view.nextEmi.emi)}</span>
+            </Link>
+          )}
+          {view.cards && (
+            <Link to="/credit-cards" className="card block p-4 transition hover:border-primary/40">
+              <span className="flex items-center gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+                  <CreditCard className="size-5" aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-ink">Credit cards</span>
+                  <span className="block text-xs text-muted">Not part of your balance</span>
+                </span>
+                <span className="text-right">
+                  <span className="block text-base font-bold text-ink tabular-nums">{formatINR(view.cards.owed)}</span>
+                  <span className="block text-xs text-muted">owed</span>
+                </span>
+              </span>
+              <ProgressBar
+                value={view.cards.usage}
+                color={BUDGET_COLORS[usageLevel(view.cards.usage)]}
+                label="All cards: limit used"
+                className="mt-3.5"
+              />
+              <span className="mt-1.5 block text-xs text-muted">
+                <span className="font-semibold text-ink">{formatPercent(view.cards.usage)}</span> of {formatINR(view.cards.limit)} limits
+                used
+              </span>
+              {view.cards.next && (
+                <span className="mt-3 flex items-center justify-between gap-2 border-t border-line pt-3">
+                  <span className="min-w-0 text-[13px] text-ink-2">
+                    Next: <span className="font-semibold text-ink">{view.cards.next.name}</span> · {formatINR(view.cards.next.minDue)}{' '}
+                    <span className="whitespace-nowrap">by {formatDate(view.cards.next.dueDate, 'short')}</span>
+                  </span>
+                  <span className="shrink-0">
+                    <CardStatus s={cardSummary(view.cards.next, today)} />
+                  </span>
+                </span>
+              )}
             </Link>
           )}
         </div>
